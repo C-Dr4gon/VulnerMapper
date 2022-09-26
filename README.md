@@ -6,7 +6,7 @@
 
 >   1. Execute VulnerMapper.sh with bash. For Linux OS, key the command below into the terminal directly. For Windows OS, download and            install git-bash and key the command below into the git-bash terminal.
      
-      > $ bash VulnerMapper.sh
+          $ bash VulnerMapper.sh
       
     
 >   2. The program will automatically install relevant applications and arrive at menu.
