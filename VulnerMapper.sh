@@ -1,72 +1,86 @@
 #!/bin/bash
 
-### OBJECTIVES: VULNERMAPPER
+###########################
+### VULNERMAPPER FUNCTIONS
+###########################
 
-# automatically install relevant applications
-# user enters network range, creates new directory
-# SCAN: use nmap and masscan to scan for ports and services, saving information into directory
-# NSE: based on scan results, use nmap scripting engine to extract more information
-# SEARCHSPLOIT: based on service detection results, use searchsploit to find potential vulnerabilities
-# BRUTE FORCE: based on the scanning results, use hydra and medusa to find weak passwords used in the network's login services
-# LOG: at the end of the mapping, show the user the scanning statistics: SCAN, NSE, SEARCHSPLOIT, BRUTEFORCE
- 
-### INSTALLATION FUNCTION
+# INSTALL(): automatically installs relevant applications and creates relevant directories
+# CONSOLE(): collects user input for session name and network range, creates new directory, and executes the subsequent core functions
+# SCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
+# NSE(): uses nmap scripting engine to extract more information about services based on scan results
+# SEARCHSPLOIT(): uses searchsploit to find potential vulnerabilities based on service results
+# BRUTEFORCE(): uses hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
+# LOG(): shows the user the collated results of SCAN(), NSE(), SEARCHSPLOIT(), and BRUTEFORCE() after their execution 
 
-# let the user know that VulnerMapper is starting
-echo " "
-echo "VulnerMapper is starting..."
-echo " "
+#####################
+### INSTALL FUNCTION
+#####################
 
+### DEFINITION
 
-# define install function
-function install()
+function INSTALL()
 {
-	# let the user know applications are being installed 
+	### START
+	# let the user know that VulnerMapper is starting
 	echo " "
-	echo "Installing applications on your local computer..."
+	echo "[*] VulnerMapper is starting..."
+	echo " "
+	echo "[*] Installing and updating applications on your local computer..."
+	echo " "
+	echo "[*] Creating new directory: ~/VulnerMapper..."
 	echo " "
 	
-	# update and install latest APT packages
+	### APT UPDATE
+	# update APT packages
 	sudo apt-get update
 	sudo apt-get upgrade
 	sudo apt-get dist-upgrade
 	
-  # install figlet for aesthetic purposes
-	# create a directory for downloading figlet font
-	# install cybermedium figlet font; credits: http://www.figlet.org
+	### DIRECTORY
+	# create a directory to contain output files later
+	cd ~
+	mkdir VulnerMapper
+	cd ~/VulnerMapper
+	echo "[+] Directory created: ~/VulnerMapper"
+	echo " "
+	
+  	### FIGLET INSTALLATION
+	# install figlet for aesthetic purposes
+	# create a directory for downloading the figlet resources
 	mkdir figrc
-	cd ~/SOChecker/figrc
-	sudo apt-get install figlet
+	cd ~/VulnerMapper/figrc
+	sudo apt-get -y install figlet
+	# install cybermedium figlet font; credits: http://www.figlet.org
 	wget http://www.jave.de/figlet/fonts/details/cybermedium.flf
+	cd ~/VulnerMapper
 	
+	### CORE APPLICATIONS INSTALLATION
 	# install relevant applications
-	sudo apt-get install nmap
-	sudo apt-get install masscan
-	sudo apt-get install hydra
+	sudo apt-get -y install nmap
+	sudo apt-get -y install masscan
+	sudo apt -y install exploitdb
+	sudo apt-get -y install hydra
+	sudo apt-get -y install medusa
 	
+	### END
 	# let the user know applications are installed
 	echo " "
-	echo "Applications installed and updated."
+	echo "[+] Applications installed and updated."
 	echo "	"
 }
 
-# call the install function
-install
+### EXECUTION
+# call the INSTALL function
+INSTALL
 
-### NETWORK LOGGING FUNCTION
+#################
+### LOG FUNCTION
+#################
 
-	# navigate to home directory 
-	# create a directory to contain the logs later
-	cd ~
-	mkdir SOChecker
-	cd ~/SOChecker
-	
-	# create a log file
-	touch netlog.log
-	
-function netlog()
+### DEFINITION
+function LOG()
 { 
-	# NMAP LOGGING
+	### NMAP LOGGING
 	# test if nmapoutput.txt exists
 	if [ -f ~/SOChecker/nmapoutput.txt ]
 	then
@@ -79,7 +93,7 @@ function netlog()
 		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> netlog.log
 	fi
 	
-	# MASSCAN LOGGING
+	### MASSCAN LOGGING
 	# test if masscanoutput.txt exists
 	if [ -f ~/SOChecker/masscanoutput.txt ]
 	then
@@ -105,7 +119,7 @@ function netlog()
 		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users"] >> netlog.log
 	fi
 	
-	# HYDRA LOGGING
+	### HYDRA LOGGING
 	# test if hydraoutput.txt exists
 	if [ -f ~/SOChecker/hydraoutput.txt ]
 	then
@@ -119,38 +133,14 @@ function netlog()
 	fi
 }
 
-### NETWORK ATTACK FUNCTION LOOP
+##################
+### SCAN FUNCTION
+##################
 
-# OPTIONS MENU
-function netatk()
+### DEFINITION
+function SCAN()
 {
-	# read options for remote control
-	read -p "Select an option (A/B/C/D/E):
-	
-	A) Nmap Port Scan
-	B) Masscan Port Scan
-	C) MSF SMB Brute-Force Attack
-	D) Hydra SMB Brute-Force Attack
-	E) Exit
-		
-	" options
-}
-
-# WHILE-TRUE LOOP
-# return user to the menu after an option until exit
-# credits: CFC/ThinkCyber coursebook, Linux Fundamentals, p49
-while true 
-do
-# display figlet for aesthetics
-figlet -c -f ~/SOChecker/figrc/cybermedium.flf -t "SOCHECKER"
-# call netatk function
-netatk
-
-# OPTION EXECUTION
-case $options in
-
-
-# A. NMAP PORT SCAN 
+	# NMAP PORT SCAN 
 A) echo " "
 echo "NMAP PORT SCAN"
 echo " "
@@ -175,6 +165,7 @@ echo " "
 echo "Nmap Port Scan has been executed and logged at ~/SOChecker/netlog.log."
 echo " "
 ;;
+}
 
 
 # B. MASSCAN PORT SCAN
@@ -289,4 +280,58 @@ exit
 
 esac
 
+###################
+# CONSOLE FUNCTION
+###################
+
+### DEFINITION
+
+function CONSOLE()
+{
+	### START
+	# display figlet for aesthetics, with short description of program
+	figlet -c -f ~/VulnerMapper/figrc/cybermedium.flf -t "VULNERMAPPER"
+	echo " "
+	echo "[*] This program is for mapping vulnerabilities in a local network. Please use for penetration testing and education purposes only."
+	echo " "
+	echo "[!] Press Ctrl-C to exit."
+	echo " "
+	
+	### SESSION NAME INPUT
+	read -p "[!] Enter Session Name: " session
+	cd ~/VulnerMapper
+	mkdir $session
+	cd ~/VulnerMapper/$session
+	echo " "
+	echo "[+] Directory created: ~/VulnerMapper/$session"
+	echo " "
+	
+	### NETWORK RANGE INPUT
+	read -p "[!] Enter Network Range: " range
+	cd ~/VulnerMapper/$session
+	mkdir $range
+	cd ~/VulnerMapper/$session/$range
+	echo " "
+	echo "[+] Directory created: ~/VulnerMapper/$session/$range"
+	echo " "
+	
+	### CORE EXECUTION
+	# call the core functions to map the specified local network range
+	SCAN
+	NSE
+	SEARCHSPLOIT
+	BRUTEFORCE
+	LOG
+	
+	### END
+	# force a pause before triggering the loop to allow the user to focus on the results
+	echo " "
+	echo "[!] Press any key to return to the console."
+}
+
+### EXECUTION
+# call the CONSOLE function through while-true loop to return user to the console after every execution
+while true 
+do
+CONSOLE
 done
