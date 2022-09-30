@@ -44,6 +44,19 @@ function INSTALL()
 	echo "[+] Directory created: ~/VulnerMapper"
 	echo " "
 	
+	# WORDLIST CONFIGURATION
+	echo "[*] Configuring Wordlists..."
+	sudo apt-get -y install wordlists
+	cd /usr/share/wordlists
+	sudo gunzip rockyou.txt.gz
+	sudo cp rockyou.txt ~/VulnerMapper/wordlist.txt
+	cd ~/VulnerMapper
+	sudo sed -i '1i kali' wordlist.txt
+	WordList=~/VulnerMapper/wordlist.txt
+	echo "[+] Wordlist created: ~/VulnerMapper/wordlist.txt"
+	echo " "
+	cd ~/VulnerMapper
+	
   	### FIGLET INSTALLATION
 	# install figlet for aesthetic purposes
 	# create a directory for downloading the figlet resources
@@ -73,212 +86,202 @@ function INSTALL()
 # call the INSTALL function
 INSTALL
 
+##################
+### SCAN FUNCTION
+##################
+
+### DEFINITION
+
+function SCAN()
+{ 
+        ### START
+        echo " "
+        echo "NMAP PORT SCAN"
+        echo " "
+        echo "[!] Enter IP Address of Target Host:"
+        read IP
+        echo " "
+        cd ~/NetTester
+        
+        ## SCANNING
+        # execute scan with -Pn flag to avoid firewall 
+        sudo nmap -Pn "$IP" > nmapoutput.txt
+        
+        ### LOGGING
+        # call the LOG function to append elements of nmapoutput.txt into log.log
+        LOG
+        # let user know about the number and details of open ports 
+        echo " "
+        echo "$(cat nmapoutput.txt | grep open | wc -l) [+] OPEN PORTS:"
+        echo "$(cat nmapoutput.txt | grep open | awk '{print $1}')"
+        echo " "
+        
+        ### END
+        # remove the nmapoutput.txt file after use
+        rm nmapoutput.txt
+        # let user know that the scan is done
+        echo " "
+        echo "[+] Nmap Port Scan has been executed and logged at ~/NetTester/log.log."
+        echo " "
+
+########################MASSCAN
+        echo " "
+        echo "MASSCAN PORT SCAN"
+        echo " "
+        echo "[!] Enter IP Address of Target Host:"
+        read IP
+        echo " "
+        echo "[!] Enter Port Numbers: (e.g. 445,80)"
+        read Ports
+        echo " "
+        cd ~/NetTest
+        
+        ### SCANNING
+        # execute scan with -Pn flag to avoid firewall
+        sudo masscan "$IP" -p "$Ports" > masscanoutput.txt
+        
+        ### LOGGING
+        # call the LOG function to append elements of masscanoutput.txt into log.log
+        LOG
+        # let user know about the number and details of open ports 
+        echo " "
+        echo "$(cat masscanoutput.txt | grep open | wc -l) [+] OPEN PORTS:"
+        echo "$(cat masscanoutput.txt | grep open | awk '{print $4}')"
+        echo " "
+        
+        ### END
+        # remove the masscanpoutput.txt file after use
+        rm masscanoutput.txt
+        # let user know that the scan is done
+        echo " "
+        echo "[+] Masscan Port Scan has been executed and logged at ~/NetTester/log.log."
+        echo " "
+}
+
+#################
+### NSE FUNCTION
+#################
+
+### DEFINITION
+
+function NSE()
+{
+	### START
+}
+
+##########################
+### SEARCHSPLOIT FUNCTION
+##########################
+
+### DEFINITION
+
+function SEARCHSPLOIT()
+{
+	### START
+}
+
+########################
+### BRUTEFORCE FUNCTION
+########################
+
+### DEFINITION
+
+function BRUTEFORCE()
+{
+        ### START
+        echo " "
+        echo "HYDRA SMB BRUTE-FORCE ATTACK"
+        echo " "
+        echo "[!] Enter IP Address of Target Host:"
+        read IP
+        echo " "
+        cd ~/NetTester
+        
+        ### BRUTE FORCE ATTACK
+        sudo hydra -f -L $WordList -P WordList $IP smb -t 4 -vV > hydraoutput.txt
+        
+        ### LOGGING
+        # call the LOG function to append elements of hydraoutput.txt into netlog.log
+        LOG
+        # let user know about the number and details of cracked users
+        echo " "
+        echo "$(cat hydraoutput.txt | grep host: | wc -l) [+] CRACKED USERS: (Format: <username> <password>)"
+        echo "$(cat hydraoutput.txt | grep host: | awk '{print $5 $7}')"
+        echo " "
+        
+        ### END
+        # remove the hydraoutput.txt files after use
+        rm hydraoutput.txt
+        # let user know that the attack is done
+        echo " "
+        echo "[+] Hydra SMB Brute-Force Attack has been executed and logged at ~/NetTester/log.log."
+        echo " "
+}
+
 #################
 ### LOG FUNCTION
 #################
 
 ### DEFINITION
+
 function LOG()
 { 
 	### NMAP LOGGING
 	# test if nmapoutput.txt exists
-	if [ -f ~/SOChecker/nmapoutput.txt ]
+        cd ~/NetTester
+	if [ -f ~/NetTester/nmapoutput.txt ]
 	then
 		# include date, time, IPs, attack type and used arguments in log
 		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
 		AttackType="NmapPortScan"
 		Arg="[sudo nmap -Pn $IP]"
 		NumOpenPorts="$(cat nmapoutput.txt | grep open | wc -l)"
-		# append filtered data into netlog.log
-		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> netlog.log
+		# append filtered data into log.log
+		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> log.log
 	fi
 	
 	### MASSCAN LOGGING
 	# test if masscanoutput.txt exists
-	if [ -f ~/SOChecker/masscanoutput.txt ]
+        cd ~/NetTester
+	if [ -f ~/NetTester/masscanoutput.txt ]
 	then
 		# include date, time, IPs, attack type and used arguments in log
 		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
 		AttackType="MasscanPortScan"
 		Arg="[sudo masscan $IP -p'$Ports']"
 		NumOpenPorts="$(cat masscanoutput.txt | grep open | wc -l)"
-		# append filtered data into netlog.log
-		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> netlog.log
+		# append filtered data into log.log
+		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> log.log
 	fi
 	
-	# MSF LOGGING
+	### MSF LOGGING
 	# test if msfoutput.txt exists
-	if [ -f ~/SOChecker/msfoutput.txt ]
+        cd ~/NetTester
+	if [ -f ~/NetTester/msfoutput.txt ]
 	then
 		# include date, time, IPs, attack type and used arguments in log
 		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
 		AttackType="MSFSMBBruteForceAttack"
 		Arg="[sudo msfconsole -r msfscript.rc]"
 		NumCrackedUsers="$(cat msfoutput.txt | grep Success: | wc -l)"
-		# append filtered data into netlog.log
-		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users"] >> netlog.log
+		# append filtered data into log.log
+		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users"] >> log.log
 	fi
 	
-	### HYDRA LOGGING
+	# HYDRA LOGGING
 	# test if hydraoutput.txt exists
-	if [ -f ~/SOChecker/hydraoutput.txt ]
+        cd ~/NetTester
+	if [ -f ~/NetTester/hydraoutput.txt ]
 	then
 		# include date, time, IPs, attack type and used arguments in log
 		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
 		AttackType="HydraSMBBruteForceAttack"
 		Arg="[sudo hydra -L $UserList -P $PassList $IP smb -vV]"
 		NumCrackedUsers="$(cat hydraoutput.txt | grep host: | wc -l)"
-		# append filtered data into netlog.log
-		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users]" >> netlog.log
+		# append filtered data into log.log
+		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users]" >> log.log
 	fi
 }
-
-##################
-### SCAN FUNCTION
-##################
-
-### DEFINITION
-function SCAN()
-{
-	# NMAP PORT SCAN 
-A) echo " "
-echo "NMAP PORT SCAN"
-echo " "
-echo "Enter IP Address of Target Host:"
-read IP
-echo " "
-# navigate to SOChecker directory
-cd ~/SOChecker
-# execute scan with -Pn flag to avoid firewall 
-sudo nmap -Pn "$IP" > nmapoutput.txt
-# call the netlog function to append elements of nmapoutput.txt into netlog.log
-netlog
-# let user know about the number and details of open ports 
-echo " "
-echo "$(cat nmapoutput.txt | grep open | wc -l) OPEN PORTS:"
-echo "$(cat nmapoutput.txt | grep open | awk '{print $1}')"
-echo " "
-# remove the nmapoutput.txt file after use
-rm nmapoutput.txt
-# let user know that the scan is done
-echo " "
-echo "Nmap Port Scan has been executed and logged at ~/SOChecker/netlog.log."
-echo " "
-;;
-}
-
-
-# B. MASSCAN PORT SCAN
-B) echo " "
-echo "MASSCAN PORT SCAN"
-echo " "
-echo "Enter IP Address of Target Host:"
-read IP
-echo " "
-echo "Enter Port Numbers: (e.g. 445,80)"
-read Ports
-echo " "
-# navigate to SOChecker directory
-cd ~/SOChecker
-# execute scan with specified ports 
-sudo masscan "$IP" -p"$Ports" > masscanoutput.txt
-# call the netlog function to append elements of masscanoutput.txt into netlog.log
-netlog
-# let user know about the number and details of open ports 
-echo " "
-echo "$(cat masscanoutput.txt | grep open | wc -l) OPEN PORTS:"
-echo "$(cat masscanoutput.txt | grep open | awk '{print $4}')"
-echo " "
-# remove the masscanpoutput.txt file after use
-rm masscanoutput.txt
-# let user know that the scan is done
-echo " "
-echo "Masscan Port Scan has been executed and logged at ~/SOChecker/netlog.log."
-echo " "
-;;
-
-# C. MSF SMB BRUTE-FORCE ATTACK
-C) echo " "
-echo "MSF SMB BRUTE-FORCE ATTACK"
-echo " "
-echo "Enter IP Address of Target Host:"
-read IP
-echo " "
-echo "Enter file path of user list:"
-read UserList
-echo " "
-echo "Enter file path of password list:"
-read PassList
-echo " "
-# navigate to SOChecker directory
-cd ~/SOChecker
-# create a .rc file to act as a script for msf console
-# inject then apend msfconsole commands
-echo "use auxiliary/scanner/smb/smb_login" > msfscript.rc
-echo "set rhosts $IP" >> msfscript.rc
-echo "set user_file $UserList" >> msfscript.rc
-echo "set pass_file $PassList" >> msfscript.rc
-echo "run" >> msfscript.rc
-echo "exit" >> msfscript.rc
-# execute attack utilising the .rc script 
-sudo msfconsole -r msfscript.rc -o msfoutput.txt
-# call the netlog function to append elements of msfoutput.txt into netlog.log
-netlog
-# let user know about the number and details of cracked users
-echo " "
-echo "$(cat msfoutput.txt | grep Success: | wc -l) CRACKED USERS: (Format: '.\<username>:<password>')"
-echo "$(cat msfoutput.txt | grep Success: | awk '{print $7}')"
-echo " "
-# remove the msfscript.rc and msfoutput.txt files after use
-sudo chmod 777 msfscript.rc
-sudo rm msfscript.rc
-rm msfoutput.txt
-# let user know that the attack is done
-echo " "
-echo "MSF SMB Brute-Force Attack has been executed and logged at ~/SOChecker/netlog.log."
-echo " "
-;;
-
-# D. HYDRA SMB BRUTE-FORCE ATTACK
-D) echo " "
-echo "HYDRA SMB BRUTE-FORCE ATTACK"
-echo " "
-echo "Enter IP Address of Target Host:"
-read IP
-echo " "
-echo "Enter file path of user list:"
-read UserList
-echo " "
-echo "Enter file path of password list:"
-read PassList
-echo " "
-# navigate to SOChecker directory
-cd ~/SOChecker
-# execute attack 
-sudo hydra -L "$UserList" -P "$PassList" "$IP" smb -vV > hydraoutput.txt
-# call the netlog function to append elements of hydraoutput.txt into netlog.log
-netlog
-# let user know about the number and details of cracked users
-echo " "
-echo "$(cat hydraoutput.txt | grep host: | wc -l) CRACKED USERS: (Format: <username> <password>)"
-echo "$(cat hydraoutput.txt | grep host: | awk '{print $5 $7}')"
-echo " "
-# remove the hydraoutput.txt files after use
-rm hydraoutput.txt
-# let user know that the attack is done
-echo " "
-echo "Hydra SMB Brute-Force Attack has been executed and logged at ~/SOChecker/netlog.log."
-echo " "
-;;
-
-# E. EXIT 
-E) echo " "
-echo "Exiting SOCHecker..."
-echo " "
-exit
-;;
-
-esac
 
 ###################
 # CONSOLE FUNCTION
@@ -292,7 +295,7 @@ function CONSOLE()
 	# display figlet for aesthetics, with short description of program
 	figlet -c -f ~/VulnerMapper/figrc/cybermedium.flf -t "VULNERMAPPER"
 	echo " "
-	echo "[*] This program is for mapping vulnerabilities in a local network. Please use for penetration testing and education purposes only."
+	echo "[*] This program is for mapping vulnerabilities of all hosts within a local network. Please use for penetration testing and education purposes only."
 	echo " "
 	echo "[!] Press Ctrl-C to exit."
 	echo " "
