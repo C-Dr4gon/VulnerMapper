@@ -6,8 +6,8 @@
 
 # INSTALL(): automatically installs relevant applications and creates relevant directories
 # CONSOLE(): collects user input for session name and network range, creates new directory, and executes the subsequent core functions
-# SCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
-# NSE(): uses nmap scripting engine to extract more information about services based on scan results
+# PORTSCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
+# NSE(): uses nmap scripting engine to conduct further enumeration of hosts, based on scan results
 # SEARCHSPLOIT(): uses searchsploit to find potential vulnerabilities based on service results
 # BRUTEFORCE(): uses hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
 # LOG(): shows the user the collated results of SCAN(), NSE(), SEARCHSPLOIT(), and BRUTEFORCE() after their execution 
@@ -91,70 +91,32 @@ INSTALL
 ##################
 
 ### DEFINITION
+# SCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
+# NSE(): uses nmap scripting engine to extract more information about services based on scan results
 
 function SCAN()
 { 
         ### START
         echo " "
-        echo "NMAP PORT SCAN"
+        echo "[*] Initiating SCAN Module....."
         echo " "
-        echo "[!] Enter IP Address of Target Host:"
-        read IP
+        echo "[*] Executing Nmap and Masscan Scans on $range for ports 0-65535...(This will take some time)"
         echo " "
-        cd ~/NetTester
-        
+    
         ## SCANNING
-        # execute scan with -Pn flag to avoid firewall 
-        sudo nmap -Pn "$IP" > nmapoutput.txt
+        # execute nmap scan with -Pn flag to avoid firewall
+	# use nmap and masscan to scan all ports for the specified range
+        sudo nmap -Pn -p0-65535 "$range" -T5> nmapoutput.txt
+	sudo masscan -p0-65535 "$range" > masscanoutput.txt
         
         ### LOGGING
         # call the LOG function to append elements of nmapoutput.txt into log.log
         LOG
-        # let user know about the number and details of open ports 
-        echo " "
-        echo "$(cat nmapoutput.txt | grep open | wc -l) [+] OPEN PORTS:"
-        echo "$(cat nmapoutput.txt | grep open | awk '{print $1}')"
-        echo " "
-        
+       
         ### END
-        # remove the nmapoutput.txt file after use
-        rm nmapoutput.txt
         # let user know that the scan is done
         echo " "
-        echo "[+] Nmap Port Scan has been executed and logged at ~/NetTester/log.log."
-        echo " "
-
-########################MASSCAN
-        echo " "
-        echo "MASSCAN PORT SCAN"
-        echo " "
-        echo "[!] Enter IP Address of Target Host:"
-        read IP
-        echo " "
-        echo "[!] Enter Port Numbers: (e.g. 445,80)"
-        read Ports
-        echo " "
-        cd ~/NetTest
-        
-        ### SCANNING
-        # execute scan with -Pn flag to avoid firewall
-        sudo masscan "$IP" -p "$Ports" > masscanoutput.txt
-        
-        ### LOGGING
-        # call the LOG function to append elements of masscanoutput.txt into log.log
-        LOG
-        # let user know about the number and details of open ports 
-        echo " "
-        echo "$(cat masscanoutput.txt | grep open | wc -l) [+] OPEN PORTS:"
-        echo "$(cat masscanoutput.txt | grep open | awk '{print $4}')"
-        echo " "
-        
-        ### END
-        # remove the masscanpoutput.txt file after use
-        rm masscanoutput.txt
-        # let user know that the scan is done
-        echo " "
-        echo "[+] Masscan Port Scan has been executed and logged at ~/NetTester/log.log."
+        echo "[+] Nmap Scan and Masscan Scan have been executed and logged at ~/VulnerMapper/$session/$range/log.log."
         echo " "
 }
 
@@ -167,6 +129,17 @@ function SCAN()
 function NSE()
 {
 	### START
+	$(cat nmapoutput.txt | grep open | awk '{print $3}') > nmapservices.lst
+	
+	### ENUMERATION
+	
+	# use a for-loop to iterate through the list of open services (port) identified by nmap
+	# execute NSE enumeration for all available scripts for each open service
+	
+	for i in nmapservices.lst
+	do
+		nmap $range -sV --script="$i"*		
+	done
 }
 
 ##########################
@@ -198,7 +171,9 @@ function BRUTEFORCE()
         cd ~/NetTester
         
         ### BRUTE FORCE ATTACK
-        sudo hydra -f -L $WordList -P WordList $IP smb -t 4 -vV > hydraoutput.txt
+        sudo hydra -f -L $WordList -P WordList $IP $Protocol -t 4 -vV > hydraoutput.txt
+	
+	sudo medusa -h $IP -U $WordList -P WordList -M $Protocol
         
         ### LOGGING
         # call the LOG function to append elements of hydraoutput.txt into netlog.log
@@ -238,6 +213,11 @@ function LOG()
 		NumOpenPorts="$(cat nmapoutput.txt | grep open | wc -l)"
 		# append filtered data into log.log
 		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> log.log
+		        # let user know about the number and details of open ports 
+       		echo " "
+        	echo "$(cat nmapoutput.txt | grep open | wc -l) [+] OPEN PORTS:"
+        	echo "$(cat nmapoutput.txt | grep open | awk '{print $1}')"
+        	echo " "
 	fi
 	
 	### MASSCAN LOGGING
@@ -310,12 +290,14 @@ function CONSOLE()
 	echo " "
 	
 	### NETWORK RANGE INPUT
-	read -p "[!] Enter Network Range: " range
+	read -p "[!] Enter Network Range (e.g. 192.168.235.0/24): " range
 	cd ~/VulnerMapper/$session
 	mkdir $range
 	cd ~/VulnerMapper/$session/$range
 	echo " "
 	echo "[+] Directory created: ~/VulnerMapper/$session/$range"
+	echo " "
+	echo "[*] Mapping the range $range......"
 	echo " "
 	
 	### CORE EXECUTION
