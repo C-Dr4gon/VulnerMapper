@@ -17,7 +17,7 @@
 > 4. SCAN(): The program will use nmap and masscan to scan for open ports and services in the target range and log results.
 
 
-> 5. NSE(): The program will use nmap scripting engine to to extract more information about services based on scan results.
+> 5. NSE(): The program will use nmap scripting engine to to conduct further enumeration of hosts, based on scan results.
 
 
 > 6. SEARCHSPLOIT(): The program will use searchsploit to find potential vulnerabilities based on service results
