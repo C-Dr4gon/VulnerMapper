@@ -1,6 +1,6 @@
 # VulnerMapper
 
-> This is a penetration testing program, written in bash script for Linux, to map out the ports, services and vulnerabilities of local network devices. This is intended for the Scanning and Enumeration Phase in the Penetration Testing cycle.
+> This is a penetration testing program, written in bash script for Linux, to map out the ports, services and vulnerabilities of local network devices. This is intended for the Scanning Phase and Vulnerability Assessment Phase in the Penetration Testing Cycle.
 
 > CONFIG: The brute-force attack will take a long time. If you just want to test if this program works, set your user and password as "kali" for the hosts in the local target network.
 
