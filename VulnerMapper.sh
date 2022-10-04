@@ -6,9 +6,9 @@
 
 # INSTALL(): automatically installs relevant applications and creates relevant directories
 # CONSOLE(): collects user input for session name and network range, creates new directory, and executes the subsequent core functions
-# PORTSCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
-# NSE(): uses nmap scripting engine to conduct further enumeration of hosts, based on scan results
-# SEARCHSPLOIT(): uses searchsploit to find potential vulnerabilities based on service results
+# SCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
+# NSE_ENUM(): uses nmap scripting engine to conduct further enumeration of hosts, based on scan results
+# SEARCHSPLOIT(): uses searchsploit to find potential vulnerabilities based on enumeration results
 # BRUTEFORCE(): uses hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
 # LOG(): shows the user the collated results of SCAN(), NSE(), SEARCHSPLOIT(), and BRUTEFORCE() after their execution 
 
@@ -91,8 +91,6 @@ INSTALL
 ##################
 
 ### DEFINITION
-# SCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
-# NSE(): uses nmap scripting engine to extract more information about services based on scan results
 
 function SCAN()
 { 
@@ -100,46 +98,71 @@ function SCAN()
         echo " "
         echo "[*] Initiating SCAN Module....."
         echo " "
-        echo "[*] Executing Nmap and Masscan Scans on $range for ports 0-65535...(This will take some time)"
+        echo "[*] Executing Nmap and Masscan Scans on $range for ports 0-65535...(This will take a long time)"
         echo " "
     
         ## SCANNING
         # execute nmap scan with -Pn flag to avoid firewall
 	# use nmap and masscan to scan all ports for the specified range
-        sudo nmap -Pn -p0-65535 "$range" -T5> nmapoutput.txt
-	sudo masscan -p0-65535 "$range" > masscanoutput.txt
+        sudo nmap -Pn -p0-65535 "$range" -T5> nmap_scan.txt
+	sudo masscan -p0-65535 "$range" > masscan_scan.txt
         
         ### LOGGING
-        # call the LOG function to append elements of nmapoutput.txt into log.log
+        # call the LOG function to append elements of nmap_scan.txt into log.txt
         LOG
        
         ### END
         # let user know that the scan is done
         echo " "
-        echo "[+] Nmap Scan and Masscan Scan have been executed and logged at ~/VulnerMapper/$session/$range/log.log."
+        echo "[+] Nmap Scan and Masscan Scan have been executed and logged at ~/VulnerMapper/$session/$range/log.txt."
         echo " "
 }
 
-#################
-### NSE FUNCTION
-#################
+######################
+### NSE_ENUM FUNCTION
+######################
 
 ### DEFINITION
 
-function NSE()
+function NSE_ENUM()
 {
 	### START
-	$(cat nmapoutput.txt | grep open | awk '{print $3}') > nmapservices.lst
+        echo " "
+        echo "[*] Initiating NSE_ENUM Module....."
+        echo " "
+        echo "[*] Identifying open ports and services from scans..."
+        echo " "
+	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $range...(This will take a long time)"
+	echo " "
+	
+	### OPEN SERVICES DATA EXTRACTION
+	$(cat nmapoutput.txt | grep open | awk '{print $3}') > nmap_services.lst
 	
 	### ENUMERATION
-	
 	# use a for-loop to iterate through the list of open services (port) identified by nmap
 	# execute NSE enumeration for all available scripts for each open service
+	# for the open service "domain", change it to "dns" for nse to process
 	
-	for i in nmapservices.lst
+	for i in nmap_services.lst
 	do
-		nmap $range -sV --script="$i"*		
+		touch nmap_enumerated.txt
+		
+		if [ i == "domain" ]
+		then
+			j="dns"
+			echo "[*] Executing Nmap Scripting Engine Enumeration on $j for $range...(This will take a long time)"
+			nmap $range -sV --script="$j"* >> nmap_enumerated.txt
+		else
+			echo "[*] Executing Nmap Scripting Engine Enumeration on $i for $range...(This will take a long time)"
+			nmap $range -sV --script="$i"* >> nmap_enumerated.txt
+		fi
 	done
+	
+	### END
+        # let user know that the enumeration is done
+        echo " "
+        echo "[+] Nmap Scripting Engine Enumeration has been executed and logged at ~/VulnerMapper/$session/$range/log.txt."
+        echo " "
 }
 
 ##########################
@@ -151,6 +174,13 @@ function NSE()
 function SEARCHSPLOIT()
 {
 	### START
+        echo " "
+        echo "[*] Initiating SEARCHSPLOIT Module....."
+        echo " "
+        echo "[*] Identifying open ports and services from scans..."
+        echo " "
+	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $range...(This will take a long time)"
+	echo " "
 }
 
 ########################
@@ -303,7 +333,7 @@ function CONSOLE()
 	### CORE EXECUTION
 	# call the core functions to map the specified local network range
 	SCAN
-	NSE
+	NSE_ENUM
 	SEARCHSPLOIT
 	BRUTEFORCE
 	LOG
