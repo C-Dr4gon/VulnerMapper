@@ -17,10 +17,10 @@
 > 4. SCAN(): The program will use nmap and masscan to scan for open ports and services in the target range and log results.
 
 
-> 5. NSE(): The program will use nmap scripting engine to to conduct further enumeration of hosts, based on scan results.
+> 5. NSE_ENUM(): The program will use nmap scripting engine to to conduct further enumeration of hosts, based on scan results.
 
 
-> 6. SEARCHSPLOIT(): The program will use searchsploit to find potential vulnerabilities based on service results
+> 6. SEARCHSPLOIT(): The program will use searchsploit to find potential vulnerabilities based on enumeration results
 
 
 > 7. BRUTEFORCE(): The program will use hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
