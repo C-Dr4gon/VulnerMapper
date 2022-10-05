@@ -96,7 +96,7 @@ function NMAP_SCAN()
         echo " "
         echo "[*] Executing NMAP_SCAN Module....."
         echo " "
-        echo "[*] Scanning $netrange on ports 0-65535...(This will take a long time)"
+        echo "[*] Scanning $netrange on ports 0-65535...(This may take a long time)"
         echo " "
     
         ## SCANNING
@@ -104,14 +104,10 @@ function NMAP_SCAN()
 	# save the scan output in greppable format for text manipulation later
         sudo nmap -Pn -T4 -v -oG -p0-65535 $netrange > nmap_scan.txt
         
-        ### LOGGING
-        # call the LOG function to append elements of nmap_scan.txt into log.txt
-        LOG
-       
         ### END
         # let user know that the scan is done
         echo " "
-        echo "[+] Nmap Scan has been executed and logged at ~/VulnerMapper/$session/$net/log.txt."
+        echo "[+] Nmap Scan has been executed."
         echo " "
 }
 
@@ -129,7 +125,7 @@ function NMAP_ENUM()
         echo " "
         echo "[*] Parsing output data from NMAP_SCAN Module..."
         echo " "
-	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $range...(This will take a long time)"
+	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $netrange...(This may take a long time)"
 	echo " "
 	
 	### HOST FILTERING
@@ -137,31 +133,36 @@ function NMAP_ENUM()
 	echo $(cat nmap_scan.txt | grep Ports: | awk '{print $2}') > nmap_openhosts.lst
 
 	### ENUMERATION LOOP
-	
 	# for each open host, filter and manipulate the data of open ports, then pass it as input for a standard NSE script to enumerate the host
+	
 	for openhost in nmap_openhosts.lst
 	do
 		### TEXT MANIPULATION
 		# filter the single-line data of the open host from the greppable scan output
-		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > "$openhost"_linedata.txt
+		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > linedata.txt
 		
 		### TEXT MANIPULATION
 		# extract a list of open ports by susbtituting space with line break, then filtering the port numbers
-		echo $(cat "$openhost"_linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > "$openhost"_openports.lst
+		echo $(cat linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > openports.lst
 		
 		### TEXT MANIPULATION
 		# change the vertical list of ports to a single string variable, divided by commmas, for input later
-		openports_var = echo "$(cat "$openhost"_openports.lst | tr "\n" " ")
+		openports_var = echo "$(cat openports.lst | tr "\n" ",")
 		
 		### ENUMERATION
 		# execute standard NSE script (-sC) for the open ports for the open host
-		nmap -sC -p$openports_var -T4 $openhost -oX "$openhost"_enumservices.xml
+		sudo nmap -sC -p$openports_var -T4 $openhost -oX "$openhost"_enum.xml
+		
+		### CLEAN-UP
+		# remove the temporary lists to avoid overcrowding the directory (especially for large network range and multiple open ports)
+		rm linedata.txt
+		rm openports.lst
 	done
 	
 	### END
         # let user know that the enumeration is done
         echo " "
-        echo "[+] Nmap Scripting Engine Enumeration has been executed and logged at ~/VulnerMapper/$session/$net/log.txt."
+        echo "[+] Nmap Scripting Engine Enumeration has been executed."
         echo " "
 }
 
@@ -175,12 +176,22 @@ function SEARCHSPLOIT_VULN()
 {
 	### START
         echo " "
-        echo "[*] Initiating SEARCHSPLOIT_VULN Module....."
+        echo "[*] Executing SEARCHSPLOIT_VULN Module....."
         echo " "
-        echo "[*] Identifying open ports and services from scans..."
+        echo "[*] Parsing output data from NMAP_ENUM Module..."
         echo " "
-	echo "[*] Executing Searchsploit Vulnerability Detection for the $range...(This will take a long time)"
+	echo "[*] Executing Searchsploit Vulnerability Detection on enumerated hosts and services......(This may take a long time)"
 	echo " "
+	
+	### VULNERABILITY DETECTION
+	for i in {}enum.xml
+	sudo searchsploit --*_enum.xml
+	
+	### END
+        # let user know that the enumeration is done
+        echo " "
+        echo "[+] Searchsploit Vulnerability Detection has been executed."
+        echo " "
 }
 
 #########################
@@ -193,7 +204,7 @@ function HYDRA_BRUTE()
 {
         ### START
         echo " "
-        echo "HYDRA SMB BRUTE-FORCE ATTACK"
+        echo "HYDRA BRUTE-FORCE ATTACK"
         echo " "
         echo "[!] Enter IP Address of Target Host:"
         read IP
