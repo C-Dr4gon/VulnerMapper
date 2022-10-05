@@ -14,16 +14,16 @@
 > 3. CONSOLE(): The program will arrive at a console for the user to key in the session name and network range.
 
 
-> 4. SCAN(): The program will use nmap and masscan to scan for open ports and services in the target range and log results.
+> 4. NMAP_SCAN(): The program will use nmap and masscan to scan for open ports and services in the target range and log results.
 
 
-> 5. NSE_ENUM(): The program will use nmap scripting engine to to conduct further enumeration of hosts, based on scan results.
+> 5. NMAP_ENUM(): The program will use nmap scripting engine to to conduct further enumeration of hosts, based on scan results.
 
 
-> 6. SEARCHSPLOIT(): The program will use searchsploit to find potential vulnerabilities based on enumeration results
+> 6. SEARCHSPLOIT_VULN(): The program will use searchsploit to find potential vulnerabilities based on enumeration results
 
 
-> 7. BRUTEFORCE(): The program will use hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
+> 7. HYDRA_BRUTE(): The program will use hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
 
 
 > 8. LOG(): The program will show the user the collated results of SCAN(), NSE(), SEARCHSPLOIT(), and BRUTEFORCE() after their execution.
