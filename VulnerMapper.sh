@@ -6,11 +6,11 @@
 
 # INSTALL(): automatically installs relevant applications and creates relevant directories
 # CONSOLE(): collects user input for session name and network range, creates new directory, and executes the subsequent core functions
-# SCAN(): uses nmap and masscan to scan for ports and services, and saves information into directory
-# NSE_ENUM(): uses nmap scripting engine to conduct further enumeration of hosts, based on scan results
-# SEARCHSPLOIT(): uses searchsploit to find potential vulnerabilities based on enumeration results
-# BRUTEFORCE(): uses hydra and medusa to find weak passwords used in the network's login services, based on the vulnerability results
-# LOG(): shows the user the collated results of SCAN(), NSE(), SEARCHSPLOIT(), and BRUTEFORCE() after their execution 
+# NMAP_SCAN(): uses Nmap to scan for ports and services, and saves information into directory
+# NMAP_ENUM(): uses Nmap Scripting Engine (NSE) to conduct further enumeration of hosts, based on scan results
+# SEARCHSPLOIT_VULN(): uses Searchsploit to find potential vulnerabilities based on enumeration results
+# HYDRA_BRUTE(): uses Hydra to find weak passwords used in the network's login services, based on the vulnerability results
+# LOG(): shows the user the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN(), and HYDRA_BRUTE() after their execution 
 
 #####################
 ### INSTALL FUNCTION
@@ -70,10 +70,8 @@ function INSTALL()
 	### CORE APPLICATIONS INSTALLATION
 	# install relevant applications
 	sudo apt-get -y install nmap
-	sudo apt-get -y install masscan
 	sudo apt -y install exploitdb
 	sudo apt-get -y install hydra
-	sudo apt-get -y install medusa
 	
 	### END
 	# let the user know applications are installed
@@ -86,26 +84,25 @@ function INSTALL()
 # call the INSTALL function
 INSTALL
 
-##################
-### SCAN FUNCTION
-##################
+#######################
+### NMAP_SCAN FUNCTION
+#######################
 
 ### DEFINITION
 
-function SCAN()
+function NMAP_SCAN()
 { 
         ### START
         echo " "
-        echo "[*] Initiating SCAN Module....."
+        echo "[*] Executing NMAP_SCAN Module....."
         echo " "
-        echo "[*] Executing Nmap and Masscan Scans on $range for ports 0-65535...(This will take a long time)"
+        echo "[*] Scanning $netrange on ports 0-65535...(This will take a long time)"
         echo " "
     
         ## SCANNING
         # execute nmap scan with -Pn flag to avoid firewall
-	# use nmap and masscan to scan all ports for the specified range
-        sudo nmap -Pn -p0-65535 "$range" -T5> nmap_scan.txt
-	sudo masscan -p0-65535 "$range" > masscan_scan.txt
+	# save the scan output in greppable format for text manipulation later
+        sudo nmap -Pn -T4 -v -oG -p0-65535 $netrange > nmap_scan.txt
         
         ### LOGGING
         # call the LOG function to append elements of nmap_scan.txt into log.txt
@@ -114,82 +111,85 @@ function SCAN()
         ### END
         # let user know that the scan is done
         echo " "
-        echo "[+] Nmap Scan and Masscan Scan have been executed and logged at ~/VulnerMapper/$session/$range/log.txt."
+        echo "[+] Nmap Scan has been executed and logged at ~/VulnerMapper/$session/$net/log.txt."
         echo " "
 }
 
-######################
-### NSE_ENUM FUNCTION
-######################
+#######################
+### NMAP_ENUM FUNCTION
+#######################
 
 ### DEFINITION
 
-function NSE_ENUM()
+function NMAP_ENUM()
 {
 	### START
         echo " "
-        echo "[*] Initiating NSE_ENUM Module....."
+        echo "[*] Executing NMAP_ENUM Module....."
         echo " "
-        echo "[*] Identifying open ports and services from scans..."
+        echo "[*] Parsing output data from NMAP_SCAN Module..."
         echo " "
 	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $range...(This will take a long time)"
 	echo " "
 	
-	### OPEN SERVICES DATA EXTRACTION
-	$(cat nmapoutput.txt | grep open | awk '{print $3}') > nmap_services.lst
+	### HOST FILTERING
+	# manipulate greppable output to create list of open hosts
+	echo $(cat nmap_scan.txt | grep Ports: | awk '{print $2}') > nmap_openhosts.lst
+
+	### ENUMERATION LOOP
 	
-	### ENUMERATION
-	# use a for-loop to iterate through the list of open services (port) identified by nmap
-	# execute NSE enumeration for all available scripts for each open service
-	# for the open service "domain", change it to "dns" for nse to process
-	
-	for i in nmap_services.lst
+	# for each open host, filter and manipulate the data of open ports, then pass it as input for a standard NSE script to enumerate the host
+	for openhost in nmap_openhosts.lst
 	do
-		touch nmap_enumerated.txt
+		### TEXT MANIPULATION
+		# filter the single-line data of the open host from the greppable scan output
+		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > "$openhost"_linedata.txt
 		
-		if [ i == "domain" ]
-		then
-			j="dns"
-			echo "[*] Executing Nmap Scripting Engine Enumeration on $j for $range...(This will take a long time)"
-			nmap $range -sV --script="$j"* >> nmap_enumerated.txt
-		else
-			echo "[*] Executing Nmap Scripting Engine Enumeration on $i for $range...(This will take a long time)"
-			nmap $range -sV --script="$i"* >> nmap_enumerated.txt
-		fi
+		### TEXT MANIPULATION
+		# extract a list of open ports by susbtituting space with line break, then filtering the port numbers
+		echo $(cat "$openhost"_linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > "$openhost"_openports.lst
+		
+		### TEXT MANIPULATION
+		# change the vertical list of ports to a single string variable, divided by commmas, for input later
+		openports_var = echo "$(cat "$openhost"_openports.lst | tr "\n" " ")
+		
+		### ENUMERATION
+		# execute standard NSE script (-sC) for the open ports for the open host
+		nmap -sC -p$openports_var -T4 $openhost -oX "$openhost"_enumservices.xml
 	done
 	
 	### END
         # let user know that the enumeration is done
         echo " "
-        echo "[+] Nmap Scripting Engine Enumeration has been executed and logged at ~/VulnerMapper/$session/$range/log.txt."
+        echo "[+] Nmap Scripting Engine Enumeration has been executed and logged at ~/VulnerMapper/$session/$net/log.txt."
         echo " "
 }
 
-##########################
-### SEARCHSPLOIT FUNCTION
-##########################
+###############################
+### SEARCHSPLOIT_VULN FUNCTION
+###############################
 
 ### DEFINITION
 
-function SEARCHSPLOIT()
+function SEARCHSPLOIT_VULN()
 {
 	### START
         echo " "
-        echo "[*] Initiating SEARCHSPLOIT Module....."
+        echo "[*] Initiating SEARCHSPLOIT_VULN Module....."
         echo " "
         echo "[*] Identifying open ports and services from scans..."
         echo " "
-	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $range...(This will take a long time)"
+	echo "[*] Executing Searchsploit Vulnerability Detection for the $range...(This will take a long time)"
 	echo " "
 }
 
-########################
-### BRUTEFORCE FUNCTION
-########################
+#########################
+### HYDRA_BRUTE FUNCTION
+#########################
 
 ### DEFINITION
 
-function BRUTEFORCE()
+function HYDRA_BRUTE()
 {
         ### START
         echo " "
@@ -261,7 +261,7 @@ function LOG()
 		Arg="[sudo masscan $IP -p'$Ports']"
 		NumOpenPorts="$(cat masscanoutput.txt | grep open | wc -l)"
 		# append filtered data into log.log
-		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> log.log
+		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports]" >> log.log
 	fi
 	
 	### MSF LOGGING
@@ -320,12 +320,14 @@ function CONSOLE()
 	echo " "
 	
 	### NETWORK RANGE INPUT
-	read -p "[!] Enter Network Range (e.g. 192.168.235.0/24): " range
-	cd ~/VulnerMapper/$session
-	mkdir $range
-	cd ~/VulnerMapper/$session/$range
+	read -p "[!] Enter Target Network Range (e.g. 192.168.235.0/24): " netrange
 	echo " "
-	echo "[+] Directory created: ~/VulnerMapper/$session/$range"
+	net=echo $(echo '$netrange' | awk -F/ '{print $1}')"
+	cd ~/VulnerMapper/$session
+	mkdir $net
+	cd ~/VulnerMapper/$session/$net
+	echo " "
+	echo "[+] Directory created: ~/VulnerMapper/$session/$net"
 	echo " "
 	echo "[*] Mapping the range $range......"
 	echo " "
