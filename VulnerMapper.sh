@@ -9,7 +9,7 @@
 # NMAP_SCAN(): uses Nmap to scan for ports and services, and saves information into directory
 # NMAP_ENUM(): uses Nmap Scripting Engine (NSE) to conduct further enumeration of hosts, based on scan results
 # SEARCHSPLOIT_VULN(): uses Searchsploit to find potential vulnerabilities based on enumeration results
-# HYDRA_BRUTE(): uses Hydra to find weak passwords used in the network's login services, based on the vulnerability results
+# HYDRA_BRUTE(): uses Hydra to find weak passwords used in the network's login services, based on scan results
 # LOG(): shows the user the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN(), and HYDRA_BRUTE() after their execution 
 
 #####################
@@ -137,11 +137,14 @@ function NMAP_ENUM()
 	
 	for openhost in nmap_openhosts.lst
 	do
-		### TEXT MANIPULATION
+		### FILTERING: HOST
+		echo " "
+		echo "[*] Enumerating $openhost......"
+		echo " "
 		# filter the single-line data of the open host from the greppable scan output
 		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > linedata.txt
 		
-		### TEXT MANIPULATION
+		### FILTERING: PORTS
 		# extract a list of open ports by susbtituting space with line break, then filtering the port numbers
 		echo $(cat linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > openports.lst
 		
@@ -150,7 +153,7 @@ function NMAP_ENUM()
 		openports_var = echo "$(cat openports.lst | tr "\n" ",")
 		
 		### ENUMERATION
-		# execute standard NSE script (-sC) for the open ports for the open host
+		# execute standard NSE script (-sC) for all for the open ports for the specified open host
 		sudo nmap -sC -p$openports_var -T4 $openhost -oX "$openhost"_enum.xml
 		
 		### CLEAN-UP
@@ -183,12 +186,21 @@ function SEARCHSPLOIT_VULN()
 	echo "[*] Executing Searchsploit Vulnerability Detection on enumerated hosts and services......(This may take a long time)"
 	echo " "
 	
-	### VULNERABILITY DETECTION
-	for i in {}enum.xml
-	sudo searchsploit --*_enum.xml
+	### VULNERABILITY DETECTION LOOP
+	# for each open host, filter and manipulate the data of enumerated services then pass it as input for Searchsploit to detect its vulnerabilities
+	
+	for openhost in nmap_openhosts.lst
+	do
+		echo " "
+		echo "[*] Detecting vulnerabilities on the services running on $openhost......"
+		echo " "
+		do
+		# execute Searchsploit on the enumerated XML file
+		sudo searchsploit --$openhost_enum.xml > $openhost_vuln.txt
+	done
 	
 	### END
-        # let user know that the enumeration is done
+        # let user know that the detection is done
         echo " "
         echo "[+] Searchsploit Vulnerability Detection has been executed."
         echo " "
@@ -202,35 +214,52 @@ function SEARCHSPLOIT_VULN()
 
 function HYDRA_BRUTE()
 {
-        ### START
+	### START
         echo " "
-        echo "HYDRA BRUTE-FORCE ATTACK"
+        echo "[*] Executing HYDRA_BRUTE Module....."
         echo " "
-        echo "[!] Enter IP Address of Target Host:"
-        read IP
+        echo "[*] Parsing output data from NMAP_SCAN Module..."
         echo " "
-        cd ~/NetTester
-        
-        ### BRUTE FORCE ATTACK
-        sudo hydra -f -L $WordList -P WordList $IP $Protocol -t 4 -vV > hydraoutput.txt
+	echo "[*] Executing Hydra Brute-Force Attack on open hosts and ports......(This may take a long time)"
+	echo " "
 	
-	sudo medusa -h $IP -U $WordList -P WordList -M $Protocol
-        
-        ### LOGGING
-        # call the LOG function to append elements of hydraoutput.txt into netlog.log
-        LOG
-        # let user know about the number and details of cracked users
-        echo " "
-        echo "$(cat hydraoutput.txt | grep host: | wc -l) [+] CRACKED USERS: (Format: <username> <password>)"
-        echo "$(cat hydraoutput.txt | grep host: | awk '{print $5 $7}')"
-        echo " "
+	### BRUTE-FORCE LOOP
+	# for each open host, filter and manipulate the data of open ports, then pass it as input for a standard NSE script to enumerate the host
+	
+	for openhost in nmap_openhosts.lst
+	do
+		### FILTERING: HOST
+		echo " "
+		echo "[*] Attacking $openhost......"
+		echo " "
+		# filter the single-line data of the open host from the greppable scan output
+		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > linedata.txt
+		
+		### FILTERING: PORTS
+		# extract a list of open services by susbtituting space with line break, then filtering the port numbers
+		echo $(cat linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > openservices.lst
+				
+      		### BRUTE-FORCE ATTACK
+		for openservice in openservices.lst
+		echo "[*] Attacking $openservice on $openhost......"
+		echo " "
+		do
+			sudo hydra -f -L $WordList -P WordList $openhost $openservice -t 4 -vV > crackedpass.txt
+			echo "$(cat crackedpass.txt | grep host: | awk '{print $7}')" >> "$openhost"_passwords.txt
+		done
+		
+		### CLEAN-UP
+		# remove the temporary lists to avoid overcrowding the directory (especially for large network range and multiple open ports)
+		rm linedata.txt
+		rm openservices.lst
+		rm crackedpass.txt
+		
+	done
         
         ### END
-        # remove the hydraoutput.txt files after use
-        rm hydraoutput.txt
         # let user know that the attack is done
         echo " "
-        echo "[+] Hydra SMB Brute-Force Attack has been executed and logged at ~/NetTester/log.log."
+        echo "[+] Hydra Brute-Force Attack has been executed."
         echo " "
 }
 
@@ -340,15 +369,15 @@ function CONSOLE()
 	echo " "
 	echo "[+] Directory created: ~/VulnerMapper/$session/$net"
 	echo " "
-	echo "[*] Mapping the range $range......"
+	echo "[*] Mapping the range $netrange......"
 	echo " "
 	
 	### CORE EXECUTION
 	# call the core functions to map the specified local network range
-	SCAN
-	NSE_ENUM
-	SEARCHSPLOIT
-	BRUTEFORCE
+	NMAP_SCAN
+	NMAP_ENUM
+	SEARCHSPLOIT_VULN
+	HYDRA_BRUTE
 	LOG
 	
 	### END
