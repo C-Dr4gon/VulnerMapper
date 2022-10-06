@@ -26,6 +26,6 @@
 > 7. HYDRA_BRUTE(): The program will use Hydra to find weak passwords used in the network's login services, based on the vulnerability results.
 
 
-> 8. LOG(): The program will shows the user the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN(), and HYDRA_BRUTE() after their execution.
+> 8. LOG(): The program will show the user the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN(), and HYDRA_BRUTE() after their execution.
 
 
