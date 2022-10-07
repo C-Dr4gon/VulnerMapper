@@ -116,7 +116,7 @@ function NMAP_ENUM()
 {
 	### START
 	echo " "
-	echo "[*] EXECUTION PF NMAP_ENUM MODULE:"
+	echo "[*] EXECUTION OF NMAP_ENUM MODULE:"
 	echo " "
 	echo "[*] Parsing output data from NMAP_SCAN Module..."
 	echo " "
@@ -246,7 +246,7 @@ function HYDRA_BRUTE()
 			WordList=~/VulnerMapper/wordlist.txt
 			sudo hydra -f -L $WordList -P $WordList $openhost $openservice -t 4 vV 2>/dev/null > hydra_brute.txt
 			# extract passwords to another file
-			echo "$openservice: $(cat hydra_brute.txt | grep host: | awk '{print $4 $5 $6 $7}')" 2>/dev/null >> ${openhost}_passwords.txt
+			echo "$openservice: $(cat hydra_brute.txt | grep host: | awk '{print $4, $5, $6, $7}')" 2>/dev/null >> ${openhost}_passwords.txt
 			# remove brute-force raw output to avoid crowding
 			rm hydra_brute.txt
 		done
@@ -281,43 +281,54 @@ function LOG()
 	touch ${rangename}_vulnmap.txt
 	# insert title and date-time
 	DateTime=$(echo "$(date +%F) $(date +%X | awk '{print $1}')")
+	echo "#########################################################" >> ${rangename}_vulnmap.txt
 	echo "VULNERABILITY MAP: $rangename | $DateTime" >> ${rangename}_vulnmap.txt
+	echo "#########################################################" >> ${rangename}_vulnmap.txt
 	echo " " >> ${rangename}_vulnmap.txt
 	echo "[*] Parsing output data from all modules......"
 	echo " "
 	
 	### OPEN HOSTS LOGGING
 	echo " " >> ${rangename}_vulnmap.txt
+	echo "###########" >> ${rangename}_vulnmap.txt
 	echo "OPEN HOSTS:" >> ${rangename}_vulnmap.txt
-	echo "$(cat nmap_openhosts.lst | tr " " "\n")" >> ${rangename}_vulnmap.txt
+	echo "###########" >> ${rangename}_vulnmap.txt
+	echo " " >> ${rangename}_vulnmap.txt
+	echo "	$(cat nmap_openhosts.lst | tr " " "\n")" >> ${rangename}_vulnmap.txt
 	echo " " >> ${rangename}_vulnmap.txt
 	
 	### VULNERABILITY LOGGING
 	# use a for-loop to iterate through the list of open hosts
-	for openhost in nmap_openhosts.lst
+	for openhost in $(cat nmap_openhosts.lst)
 	do
 		### SPECIFIC OPEN HOST HEADER
-		echo "$openhost: ENUMERATED SERVICES | POSSIBLE EXPLOITS | CRACKED PASSWORDS" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txtecho " " >> ${rangename}_vulnmap.txt
+		echo "#####################" >> ${rangename}_vulnmap.txt
+		echo "HOST: $openhost" >> ${rangename}_vulnmap.txt
+		echo "#####################" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
 		
 		### OPEN SERVICES DISCOVERY LOGGING
 		echo "ENUMERATED SERVICES" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
+		echo "-------------------" >> ${rangename}_vulnmap.txt
 		# trim irrelevant lines
-		echo "$(cat nmap_enum.lst | sed `s/"scan"/d | sed `s/"scanned"/d | sed `s/"detection performed"/d) | sed `s/"latency"/d)" >> ${rangename}_vulnmap.txt
+		echo "	$(cat ${openhost}_enum.txt | grep tcp | grep open)" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
 		
 		### POSSIBLE EXPLOITS LOGGING
 		echo "POSSIBLE EXPLOITS" >> ${rangename}_vulnmap.txt
+		echo "-----------------" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
 		# trim irrelevant lines
-		echo "$(cat ${openhost}_vuln.txt | sed 's/'No Results'/d' | sed '/^[[:space:]]*$/d')" >> ${rangename}_vulnmap.txt
-		echo " "
+		echo "	$(cat ${openhost}_vuln.txt)" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txt
 		
 		### WEAK PASSWORDS LOGGING
 		echo "CRACKED PASSWORDS" >> ${rangename}_vulnmap.txt
+		echo "-----------------" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
-		echo "$(cat ${openhost}_passwords.txt)" >> ${rangename}_vulnmap.txt
+		echo "	$(cat ${openhost}_passwords.txt)" >> ${rangename}_vulnmap.txt
 		echo " "
 		
 	done
@@ -325,7 +336,7 @@ function LOG()
 	### CLEAN-UP
 	# remove all files except the Vulnerability Map into a sub-directory to clear clutter
 	mkdir raw_output
-	mv nmap_openhosts.txt ~/VulnerMapper/$session/$rangename/raw_output
+	mv nmap_openhosts.lst ~/VulnerMapper/$session/$rangename/raw_output
 	mv nmap_scan.txt ~/VulnerMapper/$session/$rangename/raw_output
 	mv *enum.xml ~/VulnerMapper/$session/$rangename/raw_output
 	mv *enum.txt ~/VulnerMapper/$session/$rangename/raw_output
@@ -333,7 +344,12 @@ function LOG()
 	mv *passwords.txt ~/VulnerMapper/$session/$rangename/raw_output
 	
 	### END
-	echo "[+] Vulnerability Map generated: ~/VulnerMapper/$session/$rangename/${rangename}_vulnmap.txt"
+	cat ${rangename}_vulnmap.txt
+	echo " "
+	echo "[+] VULNERABILITY MAP REPORT:"
+	echo " "
+	echo "	[*] Scroll up to view the terminal output."
+	echo "	[*] View the text file at ~/VulnerMapper/$session/$rangename/${rangename}_vulnmap.txt"
 	echo " "
 }
 
@@ -407,7 +423,7 @@ function CONSOLE()
 	rangename=${net}_${mask}
 	mkdir $rangename
 	cd ~/VulnerMapper/$session/$rangename
-	echo "		[+] Directory created: ~/VulnerMapper/$session/$rangename"
+	echo "	[+] Directory created: ~/VulnerMapper/$session/$rangename"
 	echo " "
 	echo " "
 	echo " "
@@ -428,7 +444,6 @@ function CONSOLE()
 	# force a pause to allow the user to focus on the results
 	read -p "[!] END OF SESSION:
 	
-	[*] Enter 's' key to view summary in this terminal
 	[*] Enter 'y' key to return to the console
 	[*] Enter any other key to exit
 	
@@ -440,14 +455,8 @@ function CONSOLE()
 	then
 		continue 2>/dev/null 
 	else
-		if [ $option == "s" ]
-		then
-			cat ${rangename}_vulnmap.txt
-		else
-			exit
-		fi
-	fi	
-		
+		exit
+	fi		
 }
 
 ### CONSOLE LOOP
