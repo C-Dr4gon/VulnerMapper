@@ -294,7 +294,7 @@ function LOG()
 	echo "OPEN HOSTS:" >> ${rangename}_vulnmap.txt
 	echo "###########" >> ${rangename}_vulnmap.txt
 	echo " " >> ${rangename}_vulnmap.txt
-	echo "	$(cat nmap_openhosts.lst | tr " " "\n")" >> ${rangename}_vulnmap.txt
+	echo "$(cat nmap_openhosts.lst | tr " " "\n")" >> ${rangename}_vulnmap.txt
 	echo " " >> ${rangename}_vulnmap.txt
 	
 	### VULNERABILITY LOGGING
@@ -313,7 +313,7 @@ function LOG()
 		echo " " >> ${rangename}_vulnmap.txt
 		echo "-------------------" >> ${rangename}_vulnmap.txt
 		# trim irrelevant lines
-		echo "	$(cat ${openhost}_enum.txt | grep tcp | grep open)" >> ${rangename}_vulnmap.txt
+		echo "$(cat ${openhost}_enum.txt | grep tcp | grep open)" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
 		
 		### POSSIBLE EXPLOITS LOGGING
@@ -321,14 +321,14 @@ function LOG()
 		echo "-----------------" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
 		# trim irrelevant lines
-		echo "	$(cat ${openhost}_vuln.txt)" >> ${rangename}_vulnmap.txt
+		echo "$(cat ${openhost}_vuln.txt)" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
 		
 		### WEAK PASSWORDS LOGGING
 		echo "CRACKED PASSWORDS" >> ${rangename}_vulnmap.txt
 		echo "-----------------" >> ${rangename}_vulnmap.txt
 		echo " " >> ${rangename}_vulnmap.txt
-		echo "	$(cat ${openhost}_passwords.txt)" >> ${rangename}_vulnmap.txt
+		echo "$(cat ${openhost}_passwords.txt)" >> ${rangename}_vulnmap.txt
 		echo " "
 		
 	done
