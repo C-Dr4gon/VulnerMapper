@@ -21,13 +21,20 @@
 function INSTALL()
 {
 	### START
-	# let the user know that VulnerMapper is starting
 	echo " "
-	echo "[*] VulnerMapper is starting..."
+	echo "[*] EXECUTION OF INSTALL MODULE:"
 	echo " "
 	echo "[*] Installing and updating applications on your local computer..."
 	echo " "
 	echo "[*] Creating new directory: ~/VulnerMapper..."
+	echo " "
+	
+	### DIRECTORY
+	# create a directory to contain output files 
+	cd ~
+	mkdir VulnerMapper
+	cd ~/VulnerMapper
+	echo "[+] Directory created: ~/VulnerMapper"
 	echo " "
 	
 	### APT UPDATE
@@ -36,23 +43,15 @@ function INSTALL()
 	sudo apt-get -y upgrade
 	sudo apt-get -y dist-upgrade
 	
-	### DIRECTORY
-	# create a directory to contain output files later
-	cd ~
-	mkdir VulnerMapper
-	cd ~/VulnerMapper
-	echo "[+] Directory created: ~/VulnerMapper"
-	echo " "
-	
 	# WORDLIST CONFIGURATION
 	echo "[*] Configuring Wordlists..."
+	echo " "
 	sudo apt-get -y install wordlists
 	cd /usr/share/wordlists
 	sudo gunzip rockyou.txt.gz
 	sudo cp rockyou.txt ~/VulnerMapper/wordlist.txt
 	cd ~/VulnerMapper
 	sudo sed -i '1i kali' wordlist.txt
-	WordList=~/VulnerMapper/wordlist.txt
 	echo "[+] Wordlist created: ~/VulnerMapper/wordlist.txt"
 	echo " "
 	cd ~/VulnerMapper
@@ -80,10 +79,6 @@ function INSTALL()
 	echo "	"
 }
 
-### EXECUTION
-# call the INSTALL function
-# INSTALL
-
 #######################
 ### NMAP_SCAN FUNCTION
 #######################
@@ -94,7 +89,7 @@ function NMAP_SCAN()
 { 
         ### START
         echo " "
-        echo "[*] Executing NMAP_SCAN Module....."
+        echo "[*] EXECUTION OF NMAP_SCAN MODULE:"
         echo " "
         echo "[*] Scanning $netrange on ports 0-65535...(This may take a long time)"
         echo " "
@@ -102,7 +97,7 @@ function NMAP_SCAN()
         ## SCANNING
         # execute nmap scan with -Pn flag to avoid firewall
 		# save the scan output in greppable format for text manipulation later
-        sudo nmap -Pn -T4 -p0-65535 $netrange -oG nmap_scan.txt
+        sudo nmap -Pn -T4 -p0-65535 $netrange -oG nmap_scan.txt 2>/dev/null 
         
         ### END
         # let user know that the scan is done
@@ -121,7 +116,7 @@ function NMAP_ENUM()
 {
 	### START
 	echo " "
-	echo "[*] Executing NMAP_ENUM Module....."
+	echo "[*] EXECUTION PF NMAP_ENUM MODULE:"
 	echo " "
 	echo "[*] Parsing output data from NMAP_SCAN Module..."
 	echo " "
@@ -142,19 +137,19 @@ function NMAP_ENUM()
 		echo "[*] Enumerating $openhost......"
 		echo " "
 		# filter the single-line data of the open host from the greppable scan output
-		echo $(cat nmap_scan.txt | grep Ports: | grep open | grep $openhost) > linedata.txt
+		echo $(cat nmap_scan.txt | grep Ports: | grep open | grep $openhost) 2>/dev/null > linedata.txt
 		
 		### FILTERING: PORTS
 		# extract a list of open ports by susbtituting space with line break, then filtering the port numbers
-		echo $(cat linedata.txt | tr " " "\n" | grep open | awk -F/ '{print $1}') > openports.lst
+		echo $(cat linedata.txt | tr " " "\n" | grep open | awk -F/ '{print $1}') 2>/dev/null > openports.lst
 		
-		### TEXT MANIPULATION
-		# change the vertical list of ports to a single string variable, divided by commmas, for input later
-		portsstring=$(echo "$(cat openports.lst | tr " " ",")")
+		### TEXT  MANIPULATION
+		# convert the list into string, with the ports separated by commas for input later
+		portsstring=$(echo "$(cat openports.lst | tr " " "," | tr -d " ")")
 		
 		### ENUMERATION
-		# execute standard NSE script (-sC) for all for the open ports for the specified open host
-		sudo nmap -sC -p $portsstring -T4 $openhost -oX $openhost_enum.xml
+		# execute standard NSE script (-sC) with version detection (-sV) for all for the open ports for each open host
+		sudo nmap -sC -sV -p$portsstring -T4 $openhost -oX ${openhost}_enum.xml -oN ${openhost}_enum.txt 2>/dev/null 
 		
 		### CLEAN-UP
 		# remove the temporary lists to avoid overcrowding the directory (especially for large network range and multiple open ports)
@@ -180,7 +175,7 @@ function SEARCHSPLOIT_VULN()
 {
 	### START
     echo " "
-    echo "[*] Executing SEARCHSPLOIT_VULN Module....."
+    echo "[*] EXECUTION OF SEARCHSPLOIT_VULN MODULE:"
 	echo " "
 	echo "[*] Parsing output data from NMAP_ENUM Module..."
 	echo " "
@@ -188,15 +183,15 @@ function SEARCHSPLOIT_VULN()
 	echo " "
 	
 	### VULNERABILITY DETECTION LOOP
-	# for each open host, filter and manipulate the data of enumerated services then pass it as input for Searchsploit to detect its vulnerabilities
+	# for each open host, execute Searchsploit on its enumerated XML file to detect its vulnerabilities
 	
 	for openhost in $(cat nmap_openhosts.lst)
+	
 	do
-		echo " "
 		echo "[*] Detecting vulnerabilities on the services running on $openhost......"
 		echo " "
-		# execute Searchsploit on the enumerated XML file
-		sudo searchsploit -x --nmap $openhost_enum.xml > $openhost_vuln.txt
+		sudo searchsploit -x -v --nmap ${openhost}_enum.xml 2>/dev/null > ${openhost}_vuln.txt
+		
 	done
 	
 	### END
@@ -216,7 +211,7 @@ function HYDRA_BRUTE()
 {
 	### START
     echo " "
-    echo "[*] Executing HYDRA_BRUTE Module....."
+    echo "[*] EXECUTION OF HYDRA_BRUTE MODULE:"
     echo " "
     echo "[*] Parsing output data from NMAP_SCAN Module..."
     echo " "
@@ -224,9 +219,10 @@ function HYDRA_BRUTE()
 	echo " "
 	
 	### BRUTE-FORCE LOOP
-	# for each open host, filter and manipulate the data of open ports, then pass it as input for a standard NSE script to enumerate the host
+	# for each open host, filter and manipulate the data of open services, then pass it as input for the brute-force attack
 	
 	for openhost in $(cat nmap_openhosts.lst)
+	
 	do
 		### FILTERING: HOST
 		echo " "
@@ -234,39 +230,31 @@ function HYDRA_BRUTE()
 		echo " "
 		# filter the single-line data of the open host from the greppable scan output
 		echo $(cat nmap_scan.txt | grep Ports: | grep open | grep $openhost) > linedata.txt
+		# create text file to store extracted passwords
+		touch ${openhost}_passwords.txt
 		
-		### FILTERING: PORTS
-		# extract a list of open services by susbtituting space with line break, then filtering the port numbers
-		echo $(cat linedata.txt | tr " " "\n" | grep open | awk -F/ '{print $5}') > openservices.lst		
+		### FILTERING: SERVICES
+		# extract a list of open services by susbtituting space with line break, then filtering the services
+		echo $(cat linedata.txt | tr " " "\n" | grep open | tr "/" " " | awk '{print $4}') > openservices.lst		
       	
       	### BRUTE-FORCE ATTACK
+      	# brute-force through all the open services for this open host
 		for openservice in $(cat openservices.lst)
 		do
 			echo "[*] Attacking $openservice on $openhost......"
 			echo " "
-			sudo hydra -f -L $WordList -P WordList $openhost $openservice -t 4 > hydra_brute.txt
-			
-			# remove output immediately is service is not supported by hydra
-			if [ $(cat crackedpass.txt | grep ERROR | awk '{print $3}') == "service:" ]
-			then
-				rm hydra_brute.txt
-				continue
-				
-			# if service supported, extract passwords from outputfile
-			else
-				echo "$(cat hydra_brute.txt | grep host: | awk '{print $7}')" >> '$openhost'_passwords.txt
-				continue
-			fi
+			WordList=~/VulnerMapper/wordlist.txt
+			sudo hydra -f -L $WordList -P $WordList $openhost $openservice -t 4 vV 2>/dev/null > hydra_brute.txt
+			# extract passwords to another file
+			echo "$openservice: $(cat hydra_brute.txt | grep host: | awk '{print $4 $5 $6 $7}')" 2>/dev/null >> ${openhost}_passwords.txt
+			# remove brute-force raw output to avoid crowding
+			rm hydra_brute.txt
 		done
 		
 		### CLEAN-UP
 		# remove the temporary lists to avoid overcrowding the directory (especially for large network range and multiple open ports)
 		rm linedata.txt
 		rm openservices.lst
-		if [ -f hydra_brute.txt ]
-		then
-			rm hydra_brute.txt
-		fi
 		
 	done
         
@@ -283,6 +271,71 @@ function HYDRA_BRUTE()
 
 ### DEFINITION
 
+function LOG()
+{
+	### START
+	echo " "
+    echo "[*] EXECUTION OF LOG MODULE:"
+	echo " "
+	# create log file
+	touch ${rangename}_vulnmap.txt
+	# insert title and date-time
+	DateTime=$(echo "$(date +%F) $(date +%X | awk '{print $1}')")
+	echo "VULNERABILITY MAP: $rangename | $DateTime" >> ${rangename}_vulnmap.txt
+	echo " " >> ${rangename}_vulnmap.txt
+	echo "[*] Parsing output data from all modules......"
+	echo " "
+	
+	### OPEN HOSTS LOGGING
+	echo " " >> ${rangename}_vulnmap.txt
+	echo "OPEN HOSTS:" >> ${rangename}_vulnmap.txt
+	echo "$(cat nmap_openhosts.lst | tr " " "\n")" >> ${rangename}_vulnmap.txt
+	echo " " >> ${rangename}_vulnmap.txt
+	
+	### VULNERABILITY LOGGING
+	# use a for-loop to iterate through the list of open hosts
+	for openhost in nmap_openhosts.lst
+	do
+		### SPECIFIC OPEN HOST HEADER
+		echo "$openhost: ENUMERATED SERVICES | POSSIBLE EXPLOITS | CRACKED PASSWORDS" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txt
+		
+		### OPEN SERVICES DISCOVERY LOGGING
+		echo "ENUMERATED SERVICES" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txt
+		# trim irrelevant lines
+		echo "$(cat nmap_enum.lst | sed `s/"scan"/d | sed `s/"scanned"/d | sed `s/"detection performed"/d) | sed `s/"latency"/d)" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txt
+		
+		### POSSIBLE EXPLOITS LOGGING
+		echo "POSSIBLE EXPLOITS" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txt
+		# trim irrelevant lines
+		echo "$(cat ${openhost}_vuln.txt | sed 's/'No Results'/d' | sed '/^[[:space:]]*$/d')" >> ${rangename}_vulnmap.txt
+		echo " "
+		
+		### WEAK PASSWORDS LOGGING
+		echo "CRACKED PASSWORDS" >> ${rangename}_vulnmap.txt
+		echo " " >> ${rangename}_vulnmap.txt
+		echo "$(cat ${openhost}_passwords.txt)" >> ${rangename}_vulnmap.txt
+		echo " "
+		
+	done
+	
+	### CLEAN-UP
+	# remove all files except the Vulnerability Map into a sub-directory to clear clutter
+	mkdir raw_output
+	mv nmap_openhosts.txt ~/VulnerMapper/$session/$rangename/raw_output
+	mv nmap_scan.txt ~/VulnerMapper/$session/$rangename/raw_output
+	mv *enum.xml ~/VulnerMapper/$session/$rangename/raw_output
+	mv *enum.txt ~/VulnerMapper/$session/$rangename/raw_output
+	mv *vuln.txt ~/VulnerMapper/$session/$rangename/raw_output
+	mv *passwords.txt ~/VulnerMapper/$session/$rangename/raw_output
+	
+	### END
+	echo "[+] Vulnerability Map generated: ~/VulnerMapper/$session/$rangename/${rangename}_vulnmap.txt"
+	echo " "
+}
 
 ###################
 # CONSOLE FUNCTION
@@ -291,35 +344,74 @@ function HYDRA_BRUTE()
 ### DEFINITION
 
 function CONSOLE()
-{
-	### START
+{		
+	### INSTALLATION CHECK
+	# check to see if installations and configuration have already been done
+	echo " "
+	read -p "[!] INSTALLATION CHECK:
+	
+	[*] Enter 'y' key to install all relevant applications and configurations
+	[*] Enter 'n' key to skip installation (if you have installed previously)
+	
+	[!] Enter Option: " answer
+	
+	# process options through 'if' conditional flow
+	# if already installed, head to directory directly
+	if [ $answer == "n" ] 
+	then
+		cd ~/VulnerMapper
+		continue 2>/dev/null 
+	# if not,call the INSTALL function
+	else
+		if [ $answer == "y" ] 
+		then
+			echo " "
+			INSTALL
+			continue 2>/dev/null 
+		fi
+	fi
+	
+	### CONSOLE DISPLAY
 	# display figlet for aesthetics, with short description of program
+	echo " "
 	figlet -c -f ~/VulnerMapper/figrc/cybermedium.flf -t "VULNERMAPPER"
+	# description of functions
 	echo " "
-	echo "[*] This program is for mapping vulnerabilities of all hosts within a local network. Please use for penetration testing and education purposes only."
+	echo "[*] IMPORTANT NOTICE:"
+	echo "This program is for mapping vulnerabilities of all hosts within a local network. Please use for penetration testing and education purposes only."
 	echo " "
-	echo "[*] For quick testing, configure the target machines to have the user and password as 'kali'."
+	echo "[*] RAPID TESTING CONFIGURATION:"
+	echo "For quick testing, configure the target machines to have the user and password as 'kali'."
 	echo " "
-	echo "[!] Press Ctrl-C to exit."
+	echo "[!] EXIT:"
+	echo "Press Ctrl-C to exit."
 	echo " "
 	
-	### SESSION NAME INPUT
-	read -p "[!] Enter Session Name: " session
+	### START OF SESSION
+	echo " "
+	read -p "[!] START OF SESSION:
+	
+	[!] Enter Session Name: " session
+	echo " "
 	cd ~/VulnerMapper
 	mkdir $session
 	cd ~/VulnerMapper/$session
-	echo " "
-	echo "[+] Directory created: ~/VulnerMapper/$session"
-	echo " "
 	
 	### NETWORK RANGE INPUT
-	read -p "[!] Enter Target Network Range (e.g. 192.168.235.0/24): " netrange
+	read -p "
+	[!] Enter Target Network Range (e.g. 192.168.235.0/24): " netrange
 	echo " "
+	# create directory with the network range specified 
 	net=$(echo $netrange | awk -F/ '{print $1}')
-	mkdir $net
-	cd ~/VulnerMapper/$session/$net
+	mask=$(echo $netrange | awk -F/ '{print $2}')
+	rangename=${net}_${mask}
+	mkdir $rangename
+	cd ~/VulnerMapper/$session/$rangename
+	echo "		[+] Directory created: ~/VulnerMapper/$session/$rangename"
 	echo " "
-	echo "[+] Directory created: ~/VulnerMapper/$session/$net"
+	echo " "
+	echo " "
+	echo "[*] EXECUTION OF VULNERMAPPER CORE MODULES"
 	echo " "
 	echo "[*] Mapping the range $netrange......"
 	echo " "
@@ -330,21 +422,35 @@ function CONSOLE()
 	NMAP_ENUM
 	SEARCHSPLOIT_VULN
 	HYDRA_BRUTE
-	# LOG
+	LOG
 	
 	### END
 	# force a pause to allow the user to focus on the results
+	read -p "[!] END OF SESSION:
+	
+	[*] Enter 's' key to view summary in this terminal
+	[*] Enter 'y' key to return to the console
+	[*] Enter any other key to exit
+	
+	[!] Enter option: " option
 	echo " "
-	read -p "[!] Enter any key to return to the console: " resume
-	if [ ! -n "$resume" ]
+	
+	# process options through 'if' conditional flow
+	if [ $option == "y" ]
 	then
-		continue
+		continue 2>/dev/null 
 	else
-		exit
-	fi		
+		if [ $option == "s" ]
+		then
+			cat ${rangename}_vulnmap.txt
+		else
+			exit
+		fi
+	fi	
+		
 }
 
-### EXECUTION
+### CONSOLE LOOP
 # call the CONSOLE function through while-true loop to return user to the console after every execution
 while true 
 do
