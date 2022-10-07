@@ -82,7 +82,7 @@ function INSTALL()
 
 ### EXECUTION
 # call the INSTALL function
-INSTALL
+# INSTALL
 
 #######################
 ### NMAP_SCAN FUNCTION
@@ -101,8 +101,8 @@ function NMAP_SCAN()
     
         ## SCANNING
         # execute nmap scan with -Pn flag to avoid firewall
-	# save the scan output in greppable format for text manipulation later
-        sudo nmap -Pn -T4 -v -oG -p0-65535 $netrange > nmap_scan.txt
+		# save the scan output in greppable format for text manipulation later
+        sudo nmap -Pn -T4 -p0-65535 $netrange -oG nmap_scan.txt
         
         ### END
         # let user know that the scan is done
@@ -120,46 +120,47 @@ function NMAP_SCAN()
 function NMAP_ENUM()
 {
 	### START
-        echo " "
-        echo "[*] Executing NMAP_ENUM Module....."
-        echo " "
-        echo "[*] Parsing output data from NMAP_SCAN Module..."
-        echo " "
+	echo " "
+	echo "[*] Executing NMAP_ENUM Module....."
+	echo " "
+	echo "[*] Parsing output data from NMAP_SCAN Module..."
+	echo " "
 	echo "[*] Executing Nmap Scripting Engine Enumeration on open ports and services for $netrange...(This may take a long time)"
 	echo " "
 	
 	### HOST FILTERING
 	# manipulate greppable output to create list of open hosts
-	echo $(cat nmap_scan.txt | grep Ports: | awk '{print $2}') > nmap_openhosts.lst
+	echo $(cat nmap_scan.txt | grep Ports: | grep open | awk '{print $2}') > nmap_openhosts.lst
 
 	### ENUMERATION LOOP
 	# for each open host, filter and manipulate the data of open ports, then pass it as input for a standard NSE script to enumerate the host
 	
-	for openhost in nmap_openhosts.lst
+	for openhost in $(cat nmap_openhosts.lst)
 	do
 		### FILTERING: HOST
 		echo " "
 		echo "[*] Enumerating $openhost......"
 		echo " "
 		# filter the single-line data of the open host from the greppable scan output
-		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > linedata.txt
+		echo $(cat nmap_scan.txt | grep Ports: | grep open | grep $openhost) > linedata.txt
 		
 		### FILTERING: PORTS
 		# extract a list of open ports by susbtituting space with line break, then filtering the port numbers
-		echo $(cat linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > openports.lst
+		echo $(cat linedata.txt | tr " " "\n" | grep open | awk -F/ '{print $1}') > openports.lst
 		
 		### TEXT MANIPULATION
 		# change the vertical list of ports to a single string variable, divided by commmas, for input later
-		openports_var = echo "$(cat openports.lst | tr "\n" ",")
+		portsstring=$(echo "$(cat openports.lst | tr " " ",")")
 		
 		### ENUMERATION
 		# execute standard NSE script (-sC) for all for the open ports for the specified open host
-		sudo nmap -sC -p$openports_var -T4 $openhost -oX "$openhost"_enum.xml
+		sudo nmap -sC -p $portsstring -T4 $openhost -oX $openhost_enum.xml
 		
 		### CLEAN-UP
 		# remove the temporary lists to avoid overcrowding the directory (especially for large network range and multiple open ports)
 		rm linedata.txt
 		rm openports.lst
+		
 	done
 	
 	### END
@@ -178,25 +179,24 @@ function NMAP_ENUM()
 function SEARCHSPLOIT_VULN()
 {
 	### START
-        echo " "
-        echo "[*] Executing SEARCHSPLOIT_VULN Module....."
-        echo " "
-        echo "[*] Parsing output data from NMAP_ENUM Module..."
-        echo " "
+    echo " "
+    echo "[*] Executing SEARCHSPLOIT_VULN Module....."
+	echo " "
+	echo "[*] Parsing output data from NMAP_ENUM Module..."
+	echo " "
 	echo "[*] Executing Searchsploit Vulnerability Detection on enumerated hosts and services......(This may take a long time)"
 	echo " "
 	
 	### VULNERABILITY DETECTION LOOP
 	# for each open host, filter and manipulate the data of enumerated services then pass it as input for Searchsploit to detect its vulnerabilities
 	
-	for openhost in nmap_openhosts.lst
+	for openhost in $(cat nmap_openhosts.lst)
 	do
 		echo " "
 		echo "[*] Detecting vulnerabilities on the services running on $openhost......"
 		echo " "
-		do
 		# execute Searchsploit on the enumerated XML file
-		sudo searchsploit --$openhost_enum.xml > $openhost_vuln.txt
+		sudo searchsploit -x --nmap $openhost_enum.xml > $openhost_vuln.txt
 	done
 	
 	### END
@@ -215,52 +215,66 @@ function SEARCHSPLOIT_VULN()
 function HYDRA_BRUTE()
 {
 	### START
-        echo " "
-        echo "[*] Executing HYDRA_BRUTE Module....."
-        echo " "
-        echo "[*] Parsing output data from NMAP_SCAN Module..."
-        echo " "
+    echo " "
+    echo "[*] Executing HYDRA_BRUTE Module....."
+    echo " "
+    echo "[*] Parsing output data from NMAP_SCAN Module..."
+    echo " "
 	echo "[*] Executing Hydra Brute-Force Attack on open hosts and ports......(This may take a long time)"
 	echo " "
 	
 	### BRUTE-FORCE LOOP
 	# for each open host, filter and manipulate the data of open ports, then pass it as input for a standard NSE script to enumerate the host
 	
-	for openhost in nmap_openhosts.lst
+	for openhost in $(cat nmap_openhosts.lst)
 	do
 		### FILTERING: HOST
 		echo " "
 		echo "[*] Attacking $openhost......"
 		echo " "
 		# filter the single-line data of the open host from the greppable scan output
-		echo $(cat nmap_scan.txt | grep Ports: | grep $openhost) > linedata.txt
+		echo $(cat nmap_scan.txt | grep Ports: | grep open | grep $openhost) > linedata.txt
 		
 		### FILTERING: PORTS
 		# extract a list of open services by susbtituting space with line break, then filtering the port numbers
-		echo $(cat linedata.txt | tr " " "\n" | grep , | awk '{print $2}' | awk -F/ '{print $1}') > openservices.lst
-				
-      		### BRUTE-FORCE ATTACK
-		for openservice in openservices.lst
-		echo "[*] Attacking $openservice on $openhost......"
-		echo " "
+		echo $(cat linedata.txt | tr " " "\n" | grep open | awk -F/ '{print $5}') > openservices.lst		
+      	
+      	### BRUTE-FORCE ATTACK
+		for openservice in $(cat openservices.lst)
 		do
-			sudo hydra -f -L $WordList -P WordList $openhost $openservice -t 4 -vV > crackedpass.txt
-			echo "$(cat crackedpass.txt | grep host: | awk '{print $7}')" >> "$openhost"_passwords.txt
+			echo "[*] Attacking $openservice on $openhost......"
+			echo " "
+			sudo hydra -f -L $WordList -P WordList $openhost $openservice -t 4 > hydra_brute.txt
+			
+			# remove output immediately is service is not supported by hydra
+			if [ $(cat crackedpass.txt | grep ERROR | awk '{print $3}') == "service:" ]
+			then
+				rm hydra_brute.txt
+				continue
+				
+			# if service supported, extract passwords from outputfile
+			else
+				echo "$(cat hydra_brute.txt | grep host: | awk '{print $7}')" >> '$openhost'_passwords.txt
+				continue
+			fi
 		done
 		
 		### CLEAN-UP
 		# remove the temporary lists to avoid overcrowding the directory (especially for large network range and multiple open ports)
 		rm linedata.txt
 		rm openservices.lst
-		rm crackedpass.txt
+		if [ -f hydra_brute.txt ]
+		then
+			rm hydra_brute.txt
+		fi
 		
 	done
         
-        ### END
-        # let user know that the attack is done
-        echo " "
-        echo "[+] Hydra Brute-Force Attack has been executed."
-        echo " "
+	### END
+	# let user know that the attack is done
+	echo " "
+	echo "[+] Hydra Brute-Force Attack has been executed."
+	echo " "
 }
 
 #################
@@ -269,69 +283,6 @@ function HYDRA_BRUTE()
 
 ### DEFINITION
 
-function LOG()
-{ 
-	### NMAP LOGGING
-	# test if nmapoutput.txt exists
-        cd ~/NetTester
-	if [ -f ~/NetTester/nmapoutput.txt ]
-	then
-		# include date, time, IPs, attack type and used arguments in log
-		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
-		AttackType="NmapPortScan"
-		Arg="[sudo nmap -Pn $IP]"
-		NumOpenPorts="$(cat nmapoutput.txt | grep open | wc -l)"
-		# append filtered data into log.log
-		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports"] >> log.log
-		        # let user know about the number and details of open ports 
-       		echo " "
-        	echo "$(cat nmapoutput.txt | grep open | wc -l) [+] OPEN PORTS:"
-        	echo "$(cat nmapoutput.txt | grep open | awk '{print $1}')"
-        	echo " "
-	fi
-	
-	### MASSCAN LOGGING
-	# test if masscanoutput.txt exists
-        cd ~/NetTester
-	if [ -f ~/NetTester/masscanoutput.txt ]
-	then
-		# include date, time, IPs, attack type and used arguments in log
-		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
-		AttackType="MasscanPortScan"
-		Arg="[sudo masscan $IP -p'$Ports']"
-		NumOpenPorts="$(cat masscanoutput.txt | grep open | wc -l)"
-		# append filtered data into log.log
-		echo "$DateTime $IP $AttackType $Arg [$NumOpenPorts Open Ports]" >> log.log
-	fi
-	
-	### MSF LOGGING
-	# test if msfoutput.txt exists
-        cd ~/NetTester
-	if [ -f ~/NetTester/msfoutput.txt ]
-	then
-		# include date, time, IPs, attack type and used arguments in log
-		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
-		AttackType="MSFSMBBruteForceAttack"
-		Arg="[sudo msfconsole -r msfscript.rc]"
-		NumCrackedUsers="$(cat msfoutput.txt | grep Success: | wc -l)"
-		# append filtered data into log.log
-		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users"] >> log.log
-	fi
-	
-	# HYDRA LOGGING
-	# test if hydraoutput.txt exists
-        cd ~/NetTester
-	if [ -f ~/NetTester/hydraoutput.txt ]
-	then
-		# include date, time, IPs, attack type and used arguments in log
-		DateTime="$(date +%F)_$(date +%X | awk '{print $1}')"
-		AttackType="HydraSMBBruteForceAttack"
-		Arg="[sudo hydra -L $UserList -P $PassList $IP smb -vV]"
-		NumCrackedUsers="$(cat hydraoutput.txt | grep host: | wc -l)"
-		# append filtered data into log.log
-		echo "$DateTime $IP $AttackType $Arg [$NumCrackedUsers Cracked Users]" >> log.log
-	fi
-}
 
 ###################
 # CONSOLE FUNCTION
@@ -346,6 +297,8 @@ function CONSOLE()
 	figlet -c -f ~/VulnerMapper/figrc/cybermedium.flf -t "VULNERMAPPER"
 	echo " "
 	echo "[*] This program is for mapping vulnerabilities of all hosts within a local network. Please use for penetration testing and education purposes only."
+	echo " "
+	echo "[*] For quick testing, configure the target machines to have the user and password as 'kali'."
 	echo " "
 	echo "[!] Press Ctrl-C to exit."
 	echo " "
@@ -362,8 +315,7 @@ function CONSOLE()
 	### NETWORK RANGE INPUT
 	read -p "[!] Enter Target Network Range (e.g. 192.168.235.0/24): " netrange
 	echo " "
-	net=echo $(echo '$netrange' | awk -F/ '{print $1}')"
-	cd ~/VulnerMapper/$session
+	net=$(echo $netrange | awk -F/ '{print $1}')
 	mkdir $net
 	cd ~/VulnerMapper/$session/$net
 	echo " "
@@ -378,12 +330,18 @@ function CONSOLE()
 	NMAP_ENUM
 	SEARCHSPLOIT_VULN
 	HYDRA_BRUTE
-	LOG
+	# LOG
 	
 	### END
-	# force a pause before triggering the loop to allow the user to focus on the results
+	# force a pause to allow the user to focus on the results
 	echo " "
-	echo "[!] Press any key to return to the console."
+	read -p "[!] Enter any key to return to the console: " resume
+	if [ ! -n "$resume" ]
+	then
+		continue
+	else
+		exit
+	fi		
 }
 
 ### EXECUTION
