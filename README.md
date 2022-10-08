@@ -1,6 +1,6 @@
 # VulnerMapper
 
-> ![image](https://user-images.githubusercontent.com/103941010/194728271-c6d2b63e-5b71-46e9-8eb8-12727617cf07.png)
+![image](https://user-images.githubusercontent.com/103941010/194728271-c6d2b63e-5b71-46e9-8eb8-12727617cf07.png)
 
 FUNCTION
 
