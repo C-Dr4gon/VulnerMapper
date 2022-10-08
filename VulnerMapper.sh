@@ -334,6 +334,9 @@ function LOG()
 	done
 	
 	### CLEAN-UP
+	# remove the transitionary output files
+	rm nmap_scan.txt
+	rm nmap_openhosts.lst
 	# remove all files except the Vulnerability Map into a sub-directory to clear clutter
 	mkdir raw_output
 	mv nmap_openhosts.lst ~/VulnerMapper/$session/$rangename/raw_output
