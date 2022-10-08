@@ -279,6 +279,8 @@ function LOG()
 	echo " "
 	# create log file
 	touch ${rangename}_vulnmap.txt
+	# insert figlet
+	echo "$(figlet -c -f ~/VulnerMapper/figrc/cybermedium.flf -t "VULNERMAPPER")" >> ${rangename}_vulnmap.txt
 	# insert title and date-time
 	DateTime=$(echo "$(date +%F) $(date +%X | awk '{print $1}')")
 	echo "#########################################################" >> ${rangename}_vulnmap.txt
@@ -335,7 +337,8 @@ function LOG()
 	
 	### CLEAN-UP
 	# remove the transitionary output files
-	rm nmap_scan.txt
+	# force remove nmap.scan.txt as it is write-protected
+	rm -f nmap_scan.txt
 	rm nmap_openhosts.lst
 	# remove all files except the Vulnerability Map into a sub-directory to clear clutter
 	mkdir raw_output
