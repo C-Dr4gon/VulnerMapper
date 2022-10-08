@@ -465,7 +465,7 @@ function CONSOLE()
 	fi		
 }
 
-### CONSOLE LOOP
+### CONSOLE EXECUTION
 # call the CONSOLE function through while-true loop to return user to the console after every execution
 while true 
 do
