@@ -56,9 +56,11 @@ LOG(): The program will show the user the collated results of NMAP_SCAN(), NMAP_
 
 > ![image](https://user-images.githubusercontent.com/103941010/194728163-fae00a21-315a-464e-b0ee-3ebac716ab81.png)
 
-> Vulnerability Map will be generated both on the terminal and inside the specified directory.
+> Vulnerability Map report will be generated both on the terminal and inside the specified directory.
 
-> ![image](https://user-images.githubusercontent.com/103941010/194728173-ee106af3-0002-4365-8a26-625646ad7a0c.png)
+> ![image](https://user-images.githubusercontent.com/103941010/194729013-6de79604-9701-4dd7-8de5-3bdd4a1870db.png)
+
+> ![image](https://user-images.githubusercontent.com/103941010/194728979-313e5f91-ae14-400e-80c3-f42c9a6fa264.png)
 
 > Raw output files will be channelled away to a subdirectory for clean look.
 
