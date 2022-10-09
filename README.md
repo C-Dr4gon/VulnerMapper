@@ -62,8 +62,8 @@ The program will use Nmap Scripting Engine (NSE) to to conduct further enumerati
 
 ![image](https://user-images.githubusercontent.com/103941010/194727145-230b97b1-4bdd-4fe8-a90e-99fd6d17490c.png)
 
-![image](https://user-images.githubusercontent.com/103941010/194727158-162836ac-65ad-4cb9-9e24-010b93833c96.png
 
+![image](https://user-images.githubusercontent.com/103941010/194727158-162836ac-65ad-4cb9-9e24-010b93833c96.png)
 
 ## SEARCHSPLOIT_VULN()
 
