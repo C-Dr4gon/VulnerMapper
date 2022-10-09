@@ -22,7 +22,7 @@ HYDRA_BRUTE(): uses Hydra to find weak passwords used in the network's login ser
 
 LOG(): shows the user the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN(), and HYDRA_BRUTE() 
 
-## INITIATION
+## EXECUTION
 
 Execute VulnerMapper.sh with bash to start the script.
 
