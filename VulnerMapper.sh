@@ -400,7 +400,7 @@ function CONSOLE()
 	# description of functions
 	echo " "
 	echo "[*] IMPORTANT NOTICE:"
-	echo "This program is for mapping vulnerabilities of all hosts within a local network. Please use for penetration testing and education purposes only."
+	echo "This is a penetration testing program, written in shell script, to automate the scanning, enumeration and vulnerability assessment of local network devices. Please use for penetration testing and education purposes only."
 	echo " "
 	echo "[*] RAPID TESTING CONFIGURATION:"
 	echo "For quick testing, configure the target machines to have the user and password as 'kali'."
