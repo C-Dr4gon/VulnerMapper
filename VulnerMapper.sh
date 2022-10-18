@@ -6,10 +6,10 @@
 
 # INSTALL(): automatically installs relevant applications and creates relevant directories
 # CONSOLE(): collects user input for session name and network range, creates new directory, and executes the subsequent core functions
-# NMAP_SCAN(): uses Nmap to scan for ports and services, and saves information into directory
-# NMAP_ENUM(): uses Nmap Scripting Engine (NSE) to conduct further enumeration of hosts, based on scan results
-# SEARCHSPLOIT_VULN(): uses Searchsploit to find potential vulnerabilities based on enumeration results
-# HYDRA_BRUTE(): uses Hydra to find weak passwords used in the network's login services, based on scan results
+# NMAP_SCAN(): automatically uses Nmap to scan for ports and services, and saves information into directory
+# NMAP_ENUM(): automatically uses Nmap Scripting Engine (NSE) to conduct further enumeration of hosts, based on scan results
+# SEARCHSPLOIT_VULN(): automatically uses Searchsploit to find potential vulnerabilities based on enumeration results
+# HYDRA_BRUTE(): automatically uses Hydra to find weak passwords used in the network's login services, based on scan results
 # LOG(): shows the user the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN(), and HYDRA_BRUTE() after their execution 
 
 #####################
