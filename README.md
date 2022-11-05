@@ -30,74 +30,55 @@ Execute VulnerMapper.sh with bash to start the script.
 
 The user will be asked to either install relevant applications or skip to the console. if applications are already installed previously.
 
-![image](https://user-images.githubusercontent.com/103941010/197487629-b905259c-6a92-4cbd-8fb4-f4c0c937906e.png)
 
 ## CONSOLE()
 
 After installation or skipping installation, the user will arrive at a console for the user to key in the session name and network range. After that, the core modules will be executed on the network range.
 
-![image](https://user-images.githubusercontent.com/103941010/197487778-2ce21c2e-a424-4c47-8c0c-437ea6b9365a.png)
-
 The subdirectory for the session and then the network range will be created to store output files.
-
-![image](https://user-images.githubusercontent.com/103941010/197488341-a4f2948d-c574-4908-b756-d59b4127ad2f.png)
-
 
 ## NMAP_SCAN()
 
 The program will use nmap to scan for open ports and services in the target range and log results. This will take a long time if you have a large range of hosts.
-
-![image](https://user-images.githubusercontent.com/103941010/197488811-82be8a8e-fb29-4fd4-ae81-e28a95c931cd.png)
 
 
 ## NMAP_ENUM(
 
 The program will use Nmap Scripting Engine (NSE) to to conduct further enumeration of hosts, based on scan results.
 
-![image](https://user-images.githubusercontent.com/103941010/197489170-8e534aab-e238-4469-9843-cfc261b40c0a.png)
-
 ## SEARCHSPLOIT_VULN()
 
 The program will use Searchsploit to identify vulnerabilities and potential exploits based on enumeration results.
-
-![image](https://user-images.githubusercontent.com/103941010/197489222-c3e2d323-456e-4a99-82d0-fcd1bfeeaa53.png)
 
 ## HYDRA_BRUTE()
 
 The program will use Hydra to find weak passwords used in the network's login services, based on the vulnerability results.
 
-![image](https://user-images.githubusercontent.com/103941010/197489343-0a6fb8b4-ca47-4fe6-88b9-c6f3c2add915.png)
 
 ## LOG()
 
 The program will aggregate the collated results of NMAP_SCAN(), NMAP_ENUM(), SEARCHSPLOIT_VULN() and HYDRA_BRUTE() after their execution. The identified exploits require manual exploitation.
 
-![image](https://user-images.githubusercontent.com/103941010/197489972-fd5f9cdf-3753-4361-9936-3aa50f5d361b.png)
 
 The program will generate "Vulnerability Map" reports on the terminal and inside the subdirectories of the individual hosts. For this example, the SSH service version was detected. The login username and password are also cracked as "kali".
 
-![image](https://user-images.githubusercontent.com/103941010/197491158-dca0d3d3-3195-438e-9985-077f2dc0c16f.png)
+
 
 
 Output files are channelled away to different subdirectories based on their hosts for clean look.
 
-![image](https://user-images.githubusercontent.com/103941010/197491212-59617093-d02b-4e03-8a75-c0dcd77737cf.png)
 
-![image](https://user-images.githubusercontent.com/103941010/197491264-0e9a5512-16b8-4a81-9a04-564b49b8b42a.png)
 
 Raw output can be accessed inside the subdirectory.
 
-![image](https://user-images.githubusercontent.com/103941010/197491339-d1addcba-41cb-43fd-aceb-118cc26adfa8.png)
+
 
 
 ## END
 
 Press 'y' to return to the console (Installation Check) to conduct another mapping session or on another range.
 
-![image](https://user-images.githubusercontent.com/103941010/197492240-9ba600de-a8d0-4f44-8ca5-3c3393472529.png)
-
-
-Press any other key to exit:
+Press any other key to exit.
 
 
 
